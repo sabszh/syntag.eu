@@ -1,0 +1,15 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://syntag.eu/syntag-disclosure.schema.json",
+  "title":"Syntag disclosure sidecar",
+  "type":"object",
+  "required":["schemaVersion","createdAt","processing","source","disclosure","output"],
+  "properties":{
+    "schemaVersion":{"const":"0.3.0"},
+    "createdAt":{"type":"string","format":"date-time"},
+    "processing":{"const":"browser-local"},
+    "source":{"type":"object","required":["name","type","size","sha256"],"properties":{"name":{"type":"string"},"type":{"type":"string"},"size":{"type":"integer","minimum":0},"sha256":{"type":"string","pattern":"^[a-f0-9]{64}$"}}},
+    "disclosure":{"type":"object","required":["level","theme","position","size","opacity","label"],"properties":{"level":{"enum":["involved","generated","modified"]},"theme":{"enum":["mono","metal","outline","eu"]},"position":{"enum":["top-left","top-right","center","bottom-left","bottom-right"]},"size":{"enum":["small","medium","large"]},"opacity":{"type":"number","minimum":0.35,"maximum":1},"label":{"type":"string"}}},
+    "output":{"type":"object","required":["type","extension"],"properties":{"type":{"type":"string"},"extension":{"type":"string"}}}
+  }
+}
