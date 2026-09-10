@@ -18,6 +18,10 @@ Validation: `npm run build`, `npm test`, and `npm run lint`.
 
 The repository is configured for Cloudflare Workers Static Assets. Cloudflare
 serves the Vite production build directly, including SPA fallback routing.
+The Worker also exposes `POST /api/usage` and writes a small, allow-listed set
+of aggregate events to the `syntag_usage` Workers Analytics Engine dataset.
+Events contain only event name, file kind, route, and a count; file bytes and
+filenames never enter the endpoint.
 
 After committing and pushing these files to GitHub, connect this repository in
 Cloudflare Workers & Pages and create a Worker with these build settings:
@@ -46,6 +50,16 @@ npm run deploy
 
 `check:cloudflare` builds and runs a Wrangler dry run without publishing.
 `deploy` builds and publishes to the authenticated Cloudflare account.
+
+After deployment, view the dataset in Cloudflare Analytics Engine or query it
+with the Analytics Engine SQL API. A useful starting query is:
+
+```sql
+SELECT blob1 AS event, blob2 AS kind, blob3 AS route, SUM(double1) AS total
+FROM syntag_usage
+GROUP BY event, kind, route
+ORDER BY total DESC
+```
 
 If using an existing **Cloudflare Pages** project instead, set the framework to
 React (Vite), build command to `npm run build`, and output directory to `dist`.

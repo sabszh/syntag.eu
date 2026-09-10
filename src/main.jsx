@@ -17,6 +17,12 @@ const labels = Object.fromEntries(
   Object.entries(LEVELS).map(([key, value]) => [key, value.label]),
 );
 let activeStudioFile = null;
+function track(event, details = {}) {
+  if (navigator.doNotTrack === "1") return;
+  const payload = JSON.stringify({ event, route: location.hash.replace("#/", "") || "studio", ...details });
+  if (navigator.sendBeacon) navigator.sendBeacon("/api/usage", new Blob([payload], { type: "application/json" }));
+  else fetch("/api/usage", { method: "POST", body: payload, headers: { "content-type": "application/json" }, keepalive: true }).catch(() => {});
+}
 const pages = [
   ["studio", "Studio"],
   ["convention", "Convention"],
@@ -82,6 +88,7 @@ function App() {
   }, []);
   const go = (p) => (location.hash = `/${p}`);
   useEffect(() => installBrowserApi(() => activeStudioFile), []);
+  useEffect(() => { track("page_view"); }, [route]);
   useEffect(() => mainRef.current?.focus(), [route]);
   return (
     <div className="app">
@@ -157,6 +164,7 @@ function Studio() {
     if (url) URL.revokeObjectURL(url);
     setFile(f);
     activeStudioFile = f;
+    track("file_selected", { kind: kindOf(f) });
     setVideoReady(false);
     setUrl(URL.createObjectURL(f));
     setNotice({ text: "Ready to export", tone: "ready" });
@@ -181,6 +189,7 @@ function Studio() {
         },
       });
       downloadResult(result);
+      track("export_completed", { kind });
       setNotice({ text: "Export complete", tone: "success" });
     } catch (e) {
       setNotice({
@@ -665,6 +674,21 @@ function Trust() {
           <article><div className="method-visual"><FormatIcon type="audio" /></div><h3>Audio</h3><p>Audio has no visual surface, so the exported WAV carries the disclosure in its metadata. Studio shows the selected label beside the player.</p></article>
           <article><div className="method-visual"><FormatIcon type="pdf" /></div><h3>PDFs</h3><p>The disclosure is drawn onto every page using the page’s own dimensions. The result is a new PDF with the source content and mark together.</p></article>
         </div>
+      </section>
+      <section className="privacy-context usage-disclosure">
+        <h2>Aggregate usage statistics</h2>
+        <p>
+          Syntag records a small set of anonymous product events through the
+          Cloudflare Worker: page views, selected file type, and completed
+          exports. We do not send file bytes, filenames, disclosure content,
+          cookies, or account identifiers.
+        </p>
+        <p>
+          These statistics help us understand which parts of the tool are used
+          and where to improve it. Processing remains local in your browser.
+          Do Not Track is respected, and the usage endpoint accepts only the
+          documented event types.
+        </p>
       </section>
     </Page>
   );
