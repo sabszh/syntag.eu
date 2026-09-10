@@ -265,7 +265,7 @@ function Studio() {
               {Object.entries(LEVELS).map(([value, item]) => (
                 <button key={value} aria-pressed={opts.level === value}
                   className={opts.level === value ? "selected" : ""}
-                  onClick={() => { update("level", value); track("label_selected", { level: value }); }}>{item.label.replace("AI ", "").toLowerCase()}</button>
+                  onClick={() => { update("level", value); track("label_selected", { kind: value }); }}>{item.label.replace("AI ", "").toLowerCase()}</button>
               ))}
             </div>
             <p className="label-help">{LEVELS[opts.level].description}</p>
