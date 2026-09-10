@@ -23,6 +23,10 @@ of aggregate events to the `syntag_usage` Workers Analytics Engine dataset.
 Events contain only event name, file kind, route, and a count; file bytes and
 filenames never enter the endpoint.
 
+The VPS deployment uses the same `POST /api/usage` contract with a local,
+Docker-volume-backed collector. It keeps aggregate counts only; no cookies,
+identifiers, IP addresses, or file bytes are collected.
+
 Before the first deploy, enable Workers Analytics Engine for the Cloudflare
 account in the [Analytics Engine dashboard](https://dash.cloudflare.com/?to=/:account/workers/analytics-engine).
 This is an account-level prerequisite; Wrangler will report error `10089` until

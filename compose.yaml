@@ -5,8 +5,31 @@ services:
     restart: unless-stopped
     ports:
       - "${BIND_ADDRESS:-0.0.0.0}:${PORT:-8080}:8080"
+    networks:
+      - default
+      - caddy
+    depends_on:
+      - analytics
     logging:
       driver: json-file
       options:
         max-size: "10m"
         max-file: "3"
+
+  analytics:
+    build: ./analytics
+    restart: unless-stopped
+    volumes:
+      - analytics-data:/data
+    expose:
+      - "8787"
+    networks:
+      - default
+
+volumes:
+  analytics-data:
+
+networks:
+  caddy:
+    external: true
+    name: docker_default
