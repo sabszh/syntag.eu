@@ -9,7 +9,7 @@ import {
   kindOf,
   validateFile,
 } from "./lib/disclosure.js";
-import { processFile } from "./lib/processors.js";
+import { processFile, drawTag } from "./lib/processors.js";
 import { downloadResult } from "./lib/metadata.js";
 import { installBrowserApi } from "./lib/api.js";
 
@@ -22,6 +22,7 @@ const pages = [
   ["convention", "Convention"],
   ["developers", "Developers"],
   ["trust", "Trust"],
+  ["contact", "Contact"],
 ];
 
 function Logo({ size = 32 }) {
@@ -56,6 +57,15 @@ function Icon({ name }) {
       />
     </svg>
   );
+}
+function FormatIcon({ type }) {
+  const paths = {
+    image: "M4 5h16v14H4zM7 15l3-3 2 2 2-2 3 3M8 9h.01",
+    video: "M4 6h11v12H4zM15 10l5-3v10l-5-3z",
+    audio: "M6 10v4M10 7v10M14 4v16M18 9v6",
+    pdf: "M6 3h8l4 4v14H6zM14 3v5h5M9 13h6M9 16h6",
+  };
+  return <svg className="format-icon" viewBox="0 0 24 24" aria-hidden="true"><path d={paths[type]} /></svg>;
 }
 
 function App() {
@@ -92,10 +102,6 @@ function App() {
             </button>
           ))}
         </nav>
-        <div className="local">
-          <span />
-          Local processing
-        </div>
       </header>
       <main key={route} className="route" tabIndex="-1" ref={mainRef}>
         {route === "studio" ? (
@@ -104,11 +110,26 @@ function App() {
           <Convention />
         ) : route === "developers" ? (
           <Developers />
+        ) : route === "contact" ? (
+          <Contact />
         ) : (
           <Trust />
         )}
       </main>
+      <SiteFooter />
     </div>
+  );
+}
+
+function SiteFooter() {
+  return (
+    <footer className="site-footer">
+      <span>Syntag — Disclose AI. Keep creativity open.</span>
+      <span className="site-footer-credit">
+        <img src="/eu-basic-black.svg" alt="EU AI involved" />
+        <span>AI involved in the making of this site.</span>
+      </span>
+    </footer>
   );
 }
 
@@ -122,6 +143,7 @@ function Studio() {
   const [exporting, setExporting] = useState(false);
   const [controller, setController] = useState(null);
   const [dragging, setDragging] = useState(false);
+  const [videoReady, setVideoReady] = useState(false);
   useEffect(() => () => url && URL.revokeObjectURL(url), [url]);
   const kind = useMemo(() => (file ? kindOf(file) : ""), [file]);
   async function choose(f) {
@@ -135,10 +157,12 @@ function Studio() {
     if (url) URL.revokeObjectURL(url);
     setFile(f);
     activeStudioFile = f;
+    setVideoReady(false);
     setUrl(URL.createObjectURL(f));
     setNotice({ text: "Ready to export", tone: "ready" });
   }
   function update(k, v) {
+    setVideoReady(true);
     setOpts((o) => ({ ...o, [k]: v }));
   }
   async function exportAsset() {
@@ -181,87 +205,37 @@ function Studio() {
             Add an AI disclosure in your browser. Your file is not uploaded.
           </p>
         </div>
-        <ol className="flow" aria-label="Workflow">
-          <li>Upload</li>
-          <li>Choose label</li>
-          <li>Export</li>
-        </ol>
       </div>
       <div className="workbench">
-        <aside className="rail">
-          <Head title="Source file" />
-          <button
-            className={`drop ${file ? "has-file" : ""} ${dragging ? "is-dragging" : ""}`}
-            onClick={() => input.current?.click()}
-            onDragEnter={() => setDragging(true)}
+        <section className="canvas-wrap">
+          <input ref={input} hidden type="file" accept="image/*,video/*,audio/*,.pdf"
+            onChange={(e) => { choose(e.target.files[0]); e.target.value = ""; }} />
+          <div className={`canvas ${kind || ""} ${file ? "has-file" : ""} ${dragging ? "is-dragging" : ""}`}
+            onDragEnter={(e) => { e.preventDefault(); setDragging(true); }}
             onDragLeave={() => setDragging(false)}
             onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => {
-              e.preventDefault();
-              setDragging(false);
-              choose(e.dataTransfer.files[0]);
-            }}
-          >
-            <input
-              ref={input}
-              hidden
-              type="file"
-              accept="image/*,video/*,audio/*,.pdf"
-              onChange={(e) => choose(e.target.files[0])}
-            />
-            <span className="upload-icon">
-              <Icon name="upload" />
-            </span>
-            <strong>{file ? "Select another file" : "Select file"}</strong>
-            <small>or drop it here</small>
-            <span className="file-types">Image · Video · Audio · PDF</span>
-          </button>
-          {file && (
-            <div className="file-row">
-              <span>{kind || "file"}</span>
-              <div>
-                <strong>{file.name}</strong>
-                <small>{formatBytes(file.size)}</small>
-              </div>
-              <button
-                onClick={() => {
-                  setFile(null);
-                  activeStudioFile = null;
-                  setUrl("");
-                  setNotice({ text: "", tone: "idle" });
-                  if (input.current) input.current.value = "";
-                }}
-                aria-label={`Remove ${file.name}`}
-              >
-                ×
-              </button>
-            </div>
-          )}
-          <div className="privacy">
-            <Icon name="shield" />
-            <div>
-              <strong>Processed locally</strong>
-              <p>
-                The file stays in this browser session. No account is required.
-              </p>
-            </div>
-          </div>
-        </aside>
-        <section className="canvas-wrap">
-          <div className="canvas-bar">
-            <h2>Preview</h2>
-            <div className="zoom">{file ? kind : "No file"}</div>
-          </div>
-          <div className="canvas">
+            onDrop={(e) => { e.preventDefault(); setDragging(false); if (!exporting) choose(e.dataTransfer.files[0]); }}>
             {!file && (
-              <div className="empty">
-                <Logo size={78} />
-                <h3>No file selected</h3>
-                <p>Select an image, video, audio file, or PDF.</p>
-              </div>
+              <button className="empty upload-area" onClick={() => input.current?.click()}>
+                <span className="upload-icon"><Icon name="upload" /></span>
+                <h3>A little transparency starts here.</h3>
+                <p>Drop your file here, or <span>browse files</span></p>
+                <small className="file-types">Image · Video · Audio · PDF</small>
+              </button>
             )}
-            {file && <Preview file={file} url={url} />}{" "}
-            {file && <Tag opts={opts} />}
+            {file && <Preview file={file} url={url} opts={opts} videoReady={videoReady} />}
+          </div>
+          <div className="preview-caption">
+            <div>
+              <strong>{file ? file.name : "Your file stays yours."}</strong>
+              <small>{file ? `${kind.toUpperCase()} · ${formatBytes(file.size)}` : "Private. Local. In your browser."}</small>
+            </div>
+            {file && <div className="file-actions">
+              <button disabled={exporting} onClick={() => input.current?.click()}>Replace file</button>
+              <button disabled={exporting} onClick={() => {
+                setFile(null); activeStudioFile = null; setUrl(""); setVideoReady(false); setNotice({ text: "", tone: "idle" });
+              }}>Remove</button>
+            </div>}
           </div>
         </section>
         <aside className="inspector">
@@ -277,34 +251,39 @@ function Studio() {
               </button>
             }
           />
-          <div className="tag-sample">
-            <Tag opts={{ ...opts, position: "sample" }} />
-          </div>
           <Control label="Label">
-            <div className="level-choices">
+            <div className="choices disclosure-buttons" role="group" aria-label="Disclosure label">
               {Object.entries(LEVELS).map(([value, item]) => (
+                <button key={value} aria-pressed={opts.level === value}
+                  className={opts.level === value ? "selected" : ""}
+                  onClick={() => update("level", value)}>{item.label.replace("AI ", "").toLowerCase()}</button>
+              ))}
+            </div>
+            <p className="label-help">{LEVELS[opts.level].description}</p>
+          </Control>
+          <Control label="Theme">
+            <div className="theme-gallery" role="group" aria-label="Disclosure theme">
+              {[
+                ["eu", "EU icon"],
+                ["mono", "Black"],
+                ["metal", "Metal"],
+                ["outline", "Outline"],
+              ].map(([value, name]) => (
                 <button
                   key={value}
-                  className={opts.level === value ? "selected" : ""}
-                  onClick={() => update("level", value)}
-                  aria-pressed={opts.level === value}
+                  type="button"
+                  className={`theme-card ${opts.theme === value ? "selected" : ""}`}
+                  aria-label={name}
+                  aria-pressed={opts.theme === value}
+                  onClick={() => update("theme", value)}
                 >
-                  <span>{item.label.replace("AI ", "")}</span>
-                  <small>{item.description}</small>
+                  <span className="theme-preview">
+                    <Tag opts={{ ...opts, theme: value, position: "sample", size: "small" }} />
+                  </span>
+                  <small>{name}</small>
                 </button>
               ))}
             </div>
-          </Control>
-          <Control label="Theme">
-            <select
-              value={opts.theme}
-              onChange={(e) => update("theme", e.target.value)}
-            >
-              <option value="mono">Black</option>
-              <option value="metal">Metal</option>
-              <option value="outline">Outline</option>
-              <option value="eu">EU icon</option>
-            </select>
           </Control>
           <Control label="Size">
             <div className="choices">
@@ -320,11 +299,7 @@ function Studio() {
               ))}
             </div>
           </Control>
-          <details className="advanced">
-            <summary>
-              <span>More settings</span>
-              <Icon name="chevron" />
-            </summary>
+          <div className="advanced visible-settings">
             {opts.theme === "eu" && (
               <Control label="EU contrast">
                 <select
@@ -369,18 +344,6 @@ function Studio() {
                 onChange={(e) => update("opacity", e.target.value / 100)}
               />
             </Control>
-            <label className="sidecar">
-              <span>
-                <strong>JSON sidecar</strong>
-                <small>Save settings, source hash, and timestamp</small>
-              </span>
-              <input
-                type="checkbox"
-                checked={opts.sidecar}
-                onChange={(e) => update("sidecar", e.target.checked)}
-              />
-              <i />
-            </label>
             {kind === "audio" && (
               <label className="sidecar">
                 <span>
@@ -395,7 +358,7 @@ function Studio() {
                 <i />
               </label>
             )}
-          </details>
+          </div>
           {progress > 0 && (
             <progress className="export-progress" max="1" value={progress}>
               {Math.round(progress * 100)}%
@@ -411,7 +374,7 @@ function Studio() {
               {exporting
                 ? "Processing…"
                 : file
-                  ? "Export marked asset"
+                  ? "Export asset"
                   : "Select a file"}
             </span>
           </button>
@@ -438,11 +401,95 @@ function Head({ title, action }) {
     </div>
   );
 }
-function Preview({ file, url }) {
+function Preview({ file, url, opts, videoReady }) {
+  const canvas = useRef(null);
+  const [error, setError] = useState("");
+  const [pdfPreview, setPdfPreview] = useState("");
+  const [videoPreview, setVideoPreview] = useState("");
+  useEffect(() => {
+    if (!file.type.startsWith("image/")) return;
+    let cancelled = false;
+    const img = new Image();
+    img.onload = async () => {
+      try {
+        const buffer = document.createElement("canvas");
+        buffer.width = img.naturalWidth;
+        buffer.height = img.naturalHeight;
+        const ctx = buffer.getContext("2d");
+        ctx.drawImage(img, 0, 0);
+        await drawTag(ctx, buffer.width, buffer.height, opts);
+        if (cancelled || !canvas.current) return;
+        canvas.current.width = buffer.width;
+        canvas.current.height = buffer.height;
+        canvas.current.getContext("2d").drawImage(buffer, 0, 0);
+        setError("");
+      } catch (e) { if (!cancelled) setError(e.message); }
+    };
+    img.onerror = () => { if (!cancelled) setError("This image could not be previewed."); };
+    img.src = url;
+    return () => { cancelled = true; };
+  }, [file, url, opts]);
+  useEffect(() => {
+    if (kindOf(file) !== "pdf") return undefined;
+    let cancelled = false;
+    let nextUrl = "";
+    processFile(file, { ...opts, sidecar: false })
+      .then((result) => {
+        if (cancelled) return;
+        nextUrl = URL.createObjectURL(result.blob);
+        setPdfPreview(nextUrl);
+      })
+      .catch((e) => {
+        if (!cancelled) setError(e.message || "This PDF could not be previewed.");
+      });
+    return () => {
+      cancelled = true;
+      if (nextUrl) URL.revokeObjectURL(nextUrl);
+    };
+  }, [file, opts]);
+  useEffect(() => {
+    if (!file.type.startsWith("video/") || !videoReady) return undefined;
+    let cancelled = false;
+    let nextUrl = "";
+    const controller = new AbortController();
+    processFile(file, { ...opts, sidecar: false }, { signal: controller.signal })
+      .then((result) => {
+        if (cancelled) return;
+        nextUrl = URL.createObjectURL(result.blob);
+        setVideoPreview(nextUrl);
+      })
+      .catch((e) => {
+        if (!cancelled && e.name !== "AbortError") setError(e.message || "This video could not be previewed.");
+      });
+    return () => {
+      cancelled = true;
+      controller.abort();
+      if (nextUrl) URL.revokeObjectURL(nextUrl);
+    };
+  }, [file, opts, videoReady]);
   if (file.type.startsWith("image/"))
-    return <img src={url} alt="Asset preview" />;
-  if (file.type.startsWith("video/")) return <video src={url} controls />;
-  if (file.type.startsWith("audio/")) return <audio src={url} controls />;
+    return <>{error ? <p role="alert">{error}</p> : <canvas ref={canvas} className="image-preview" role="img" aria-label={`Asset preview with ${labels[opts.level]}`} />}</>;
+  if (file.type.startsWith("video/")) {
+    if (!videoReady) return <div className="video-gate"><span className="video-gate-icon">▶</span><strong>Choose a disclosure to load the video</strong><small>Select a label or theme in the panel.</small></div>;
+    return videoPreview ? (
+      <video src={videoPreview} controls />
+    ) : <p className="preview-loading">Rendering disclosure preview…</p>;
+  }
+  if (file.type.startsWith("audio/")) {
+    return (
+      <div className="audio-preview">
+        <Tag opts={{ ...opts, position: "sample", size: "medium" }} />
+        <audio src={url} controls />
+        <small>Disclosure is stored in the exported audio metadata.</small>
+      </div>
+    );
+  }
+  if (kindOf(file) === "pdf") {
+    if (error) return <p role="alert">{error}</p>;
+    return pdfPreview ? (
+      <embed src={`${pdfPreview}#toolbar=0&navpanes=0&view=FitH`} type="application/pdf" title="PDF asset preview with disclosure" />
+    ) : <p className="preview-loading">Rendering disclosure preview…</p>;
+  }
   return <embed src={url} type="application/pdf" title="PDF asset preview" />;
 }
 function Tag({ opts }) {
@@ -454,17 +501,13 @@ function Tag({ opts }) {
         role="img"
         aria-label={`EU icon: ${labels[opts.level]}`}
       >
-        <svg
-          viewBox="110 590 2280 470"
-          preserveAspectRatio="none"
-          aria-hidden="true"
-        >
-          <image
-            href={euAsset(opts.level, "black")}
-            width="2501"
-            height="1668"
-          />
-        </svg>
+        <img
+          src={euAsset(
+            opts.level,
+            opts.euVariant.startsWith("white") ? "white" : "black",
+          )}
+          alt=""
+        />
       </div>
     );
   }
@@ -497,19 +540,18 @@ function Convention() {
       intro="Syntag uses three labels: AI involved, AI generated, and AI modified."
     >
       <div className="cards">
-        {Object.entries(labels).map(([k, v], i) => (
+        {Object.keys(labels).map((k, i) => (
           <article key={k}>
             <span>0{i + 1}</span>
             <Tag
               opts={{
                 ...defaults,
                 level: k,
-                theme: i === 1 ? "metal" : "mono",
+                theme: "mono",
                 position: "sample",
                 size: "medium",
               }}
             />
-            <h3>{v}</h3>
             <p>
               {k === "involved"
                 ? "Use when AI contributed to the asset."
@@ -523,11 +565,18 @@ function Convention() {
       <section className="eu-callout">
         <h2>EU icon mapping</h2>
         <p>
-          Syntag maps its three levels to the EU basic, fully generated, and
-          partially modified icons. The icons do not by themselves prove
-          compliance.
+          The EU set is a shared visual language for content that has been
+          generated or manipulated with AI. Syntag maps its three labels to the
+          official icons so a disclosure remains recognisable after an asset is
+          downloaded or reshared. The icons are optional and do not by
+          themselves prove legal compliance.
         </p>
       </section>
+      <div className="mapping-notes">
+        <div><strong>AI involved</strong><span>Basic icon for work where AI contributed.</span></div>
+        <div><strong>AI generated</strong><span>Fully generated icon for content made entirely by AI.</span></div>
+        <div><strong>AI modified</strong><span>Partially modified icon for human content changed with AI.</span></div>
+      </div>
     </Page>
   );
 }
@@ -540,17 +589,19 @@ function Developers() {
       <div className="code-grid">
         <Code
           title="Browser API"
-          code={`const result = await Syntag.process(file, {\n  level: "generated",\n  theme: "mono",\n  position: "bottom-right"\n});`}
+          code={`const result = await Syntag.process(file, {\n  level: "generated",\n  theme: "eu",\n  euVariant: "auto",\n  position: "bottom-right",\n  size: "medium",\n  opacity: 1,\n  sidecar: true,\n  audioTone: true\n});`}
         />
         <Code
           title="MCP tool"
-          code={`{\n  "name": "syntag_tag_asset",\n  "arguments": {\n    "settings": { "theme": "eu" }\n  }\n}`}
+          code={`{\n  "name": "syntag_tag_asset",\n  "arguments": {\n    "settings": {\n      "level": "generated",\n      "theme": "eu",\n      "euVariant": "auto",\n      "position": "bottom-right",\n      "size": "medium",\n      "opacity": 1,\n      "sidecar": true\n    }\n  }\n}`}
         />
       </div>
       <RpcConsole />
       <p className="footnote">
-        A browser tab cannot provide an MCP stdio or HTTP transport. That
-        requires a separate host process.
+        The browser bridge is the working integration: it calls the same
+        processor as Studio and keeps the selected file in the browser session.
+        A standalone stdio transport can be added when an external host needs
+        to connect to the browser.
       </p>
     </Page>
   );
@@ -565,14 +616,19 @@ function Trust() {
         <article>
           <Icon name="shield" />
           <h3>Local processing</h3>
-          <p>Preview and export run in browser APIs.</p>
+          <p>
+            Preview and export run in browser APIs. The original file is read
+            into memory, processed locally, and released when the session ends.
+            Nothing is uploaded to or stored by Syntag.
+          </p>
         </article>
         <article>
           <Icon name="copy" />
           <h3>JSON sidecar</h3>
           <p>
-            The optional sidecar stores the source hash, disclosure settings,
-            and timestamp.
+            The JSON sidecar contains the source hash, disclosure settings, and
+            timestamp. It is generated as a local download alongside the marked
+            asset; the image bytes never pass through a Syntag server.
           </p>
         </article>
         <article>
@@ -583,6 +639,62 @@ function Trust() {
           </p>
         </article>
       </div>
+      <section className="privacy-context">
+        <h2>Why this exists</h2>
+        <p>
+          Declaring AI use should be as easy and accessible as adding a caption.
+          Syntag gives creators a clear label, a visual EU option, and a small
+          browser API so disclosure can fit into the tools they already use.
+        </p>
+        <p>
+          When MCP is used, a connected tool sends settings to the browser
+          bridge. The browser reads the selected file, adds the disclosure, and
+          returns export metadata. When JSON sidecar is enabled, only metadata
+          is written to the sidecar download. The source image is never stored
+          on a Syntag server.
+        </p>
+      </section>
+      <section className="content-methods">
+        <div className="content-methods-intro">
+          <span className="eyebrow">How it works</span>
+          <h2>One disclosure model, adapted to each format.</h2>
+        </div>
+        <div className="content-methods-grid">
+          <article><div className="method-visual"><FormatIcon type="image" /></div><h3>Images</h3><p>The mark is composited onto the original pixels at the chosen position, size, contrast, and opacity. The export keeps the source dimensions.</p></article>
+          <article><div className="method-visual"><FormatIcon type="video" /></div><h3>Video</h3><p>Frames are processed in the browser and recorded into a new video file with the disclosure visible throughout playback.</p></article>
+          <article><div className="method-visual"><FormatIcon type="audio" /></div><h3>Audio</h3><p>Audio has no visual surface, so the exported WAV carries the disclosure in its metadata. Studio shows the selected label beside the player.</p></article>
+          <article><div className="method-visual"><FormatIcon type="pdf" /></div><h3>PDFs</h3><p>The disclosure is drawn onto every page using the page’s own dimensions. The result is a new PDF with the source content and mark together.</p></article>
+        </div>
+      </section>
+    </Page>
+  );
+}
+function Contact() {
+  return (
+    <Page
+      title="Contact"
+      intro="A standalone project for making AI disclosure clear and accessible."
+    >
+      <section className="contact-panel">
+        <div>
+          <span className="eyebrow">Get in touch</span>
+          <h2>Syntag is built in the open.</h2>
+        </div>
+        <div className="contact-copy">
+          <p>
+            For questions, feedback, or collaboration, contact Sabrina at{" "}
+            <a href="mailto:sabrina@gejststudio.com">sabrina@gejststudio.com</a>.
+          </p>
+          <p>
+            Syntag is an independent project supported by{" "}
+            <a href="https://gejststudio.com" target="_blank" rel="noreferrer">
+              Gejst Studio
+            </a>
+            . It has its own interface, processing model, and privacy
+            commitments, with Gejst Studio providing support behind the project.
+          </p>
+        </div>
+      </section>
     </Page>
   );
 }

@@ -39,29 +39,16 @@ async function decodeImage(file) {
 export async function getEuCanvas(level, color = "black") {
   const key = `${level}-${color}`;
   if (euCache.has(key)) return euCache.get(key);
-  const img = await loadImage(euAsset(level, "black")),
-    source = { x: 110, y: 590, w: 2280, h: 470 };
+  const img = await loadImage(euAsset(level, color));
+  const dimensions = {
+    involved: [566.93, 566.93],
+    generated: [1789.84, 566.93],
+    modified: [1700.79, 566.93],
+  }[level] || [1789.84, 566.93];
   const c = document.createElement("canvas");
-  c.width = source.w;
-  c.height = source.h;
-  const x = c.getContext("2d");
-  x.drawImage(
-    img,
-    source.x,
-    source.y,
-    source.w,
-    source.h,
-    0,
-    0,
-    c.width,
-    c.height,
-  );
-  if (color === "white") {
-    x.globalCompositeOperation = "source-in";
-    x.fillStyle = "#fff";
-    x.fillRect(0, 0, c.width, c.height);
-    x.globalCompositeOperation = "source-over";
-  }
+  c.width = Math.round(dimensions[0]);
+  c.height = Math.round(dimensions[1]);
+  c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
   euCache.set(key, c);
   return c;
 }
@@ -104,8 +91,9 @@ export async function drawTag(ctx, w, h, input = {}) {
   const o = normalizeOptions(input),
     fs = Math.max(13, Math.min(w, h) * (sizeFactor[o.size] || 0.034));
   if (o.theme === "eu") {
-    const tw = fs * 8.5,
-      th = tw / 4.85,
+    const source = await getEuCanvas(o.level);
+    const th = Math.min(fs * 1.65, h * 0.8),
+      tw = Math.min(th * source.width / source.height, w * 0.9),
       [x, y] = positionFor(w, h, tw, th, o);
     let variant = o.euVariant;
     if (variant === "auto")
@@ -287,8 +275,8 @@ async function processPdf(file, o, { signal, onProgress }) {
       { width, height } = page.getSize(),
       fs = Math.max(8, Math.min(width, height) * (sizeFactor[o.size] || 0.034));
     if (o.theme === "eu") {
-      const tw = fs * 8.5,
-        th = tw / 4.85,
+      const th = fs * 1.65,
+        tw = th * euPng.width / euPng.height,
         [x, top] = positionFor(width, height, tw, th, o);
       page.drawImage(euPng, {
         x,

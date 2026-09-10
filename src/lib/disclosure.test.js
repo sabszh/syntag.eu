@@ -14,12 +14,12 @@ describe("disclosure model", () => {
   it("falls back from invalid settings", () =>
     expect(normalizeOptions({ level: "nope", theme: "purple" })).toMatchObject({
       level: "generated",
-      theme: "mono",
+      theme: "eu",
     }));
   it("enforces EU minimum opacity", () =>
     expect(normalizeOptions({ theme: "eu", opacity: 0.1 }).opacity).toBe(0.5));
   it("maps EU semantic levels", () =>
-    expect(euAsset("modified")).toBe("/eu-modified-black.png"));
+    expect(euAsset("modified")).toBe("/eu-modified-black.svg"));
   it("recognizes supported kinds", () => {
     expect(kindOf(file("a.png", "image/png"))).toBe("image");
     expect(kindOf(file("a.pdf", "application/pdf"))).toBe("pdf");

@@ -17,7 +17,7 @@ export const LEVELS = {
 };
 export const DEFAULTS = Object.freeze({
   level: "generated",
-  theme: "mono",
+  theme: "eu",
   position: "bottom-right",
   size: "medium",
   opacity: 1,
@@ -55,7 +55,7 @@ export function normalizeOptions(input = {}) {
 export function euAsset(level, variant = "black") {
   const suffix =
     variant === "white" || variant === "white-50" ? "white" : "black";
-  return `/eu-${LEVELS[level]?.eu || "generated"}-${suffix}.png`;
+  return `/eu-${LEVELS[level]?.eu || "generated"}-${suffix}.svg`;
 }
 
 export function formatBytes(n) {
