@@ -23,6 +23,11 @@ of aggregate events to the `syntag_usage` Workers Analytics Engine dataset.
 Events contain only event name, file kind, route, and a count; file bytes and
 filenames never enter the endpoint.
 
+Before the first deploy, enable Workers Analytics Engine for the Cloudflare
+account in the [Analytics Engine dashboard](https://dash.cloudflare.com/?to=/:account/workers/analytics-engine).
+This is an account-level prerequisite; Wrangler will report error `10089` until
+it is enabled. The dataset itself is created automatically on the first write.
+
 After committing and pushing these files to GitHub, connect this repository in
 Cloudflare Workers & Pages and create a Worker with these build settings:
 
