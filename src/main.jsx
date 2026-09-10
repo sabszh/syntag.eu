@@ -265,7 +265,7 @@ function Studio() {
               {Object.entries(LEVELS).map(([value, item]) => (
                 <button key={value} aria-pressed={opts.level === value}
                   className={opts.level === value ? "selected" : ""}
-                  onClick={() => update("level", value)}>{item.label.replace("AI ", "").toLowerCase()}</button>
+                  onClick={() => { update("level", value); track("label_selected", { level: value }); }}>{item.label.replace("AI ", "").toLowerCase()}</button>
               ))}
             </div>
             <p className="label-help">{LEVELS[opts.level].description}</p>
@@ -679,8 +679,8 @@ function Trust() {
         <h2>Aggregate usage statistics</h2>
         <p>
           Syntag records a small set of anonymous product events through the
-          Cloudflare Worker: page views, selected file type, and completed
-          exports. We do not send file bytes, filenames, disclosure content,
+          page views, label selections, selected file type, and completed exports.
+          We do not send file bytes, filenames, disclosure content,
           cookies, or account identifiers.
         </p>
         <p>

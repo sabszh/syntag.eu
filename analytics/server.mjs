@@ -4,7 +4,7 @@ import { dirname } from "node:path";
 
 const PORT = Number(process.env.PORT || 8787);
 const DATA_FILE = process.env.DATA_FILE || "/data/usage.json";
-const EVENTS = new Set(["page_view", "file_selected", "export_completed"]);
+const EVENTS = new Set(["page_view", "label_selected", "file_selected", "export_completed"]);
 let state = { total: 0, events: {}, kinds: {}, routes: {}, days: {} };
 let writeQueue = Promise.resolve();
 try { state = { ...state, ...JSON.parse(await readFile(DATA_FILE, "utf8")) }; } catch {}

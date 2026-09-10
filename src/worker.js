@@ -1,4 +1,4 @@
-const EVENTS = new Set(["page_view", "file_selected", "export_completed"]);
+const EVENTS = new Set(["page_view", "label_selected", "file_selected", "export_completed"]);
 
 function json(body, status = 200) {
   return new Response(JSON.stringify(body), {
