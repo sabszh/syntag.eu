@@ -80,24 +80,34 @@ function App() {
     return pages.some(([id]) => id === value) ? value : "studio";
   };
   const [route, setRoute] = useState(routeFromHash());
+  const [menuOpen, setMenuOpen] = useState(false);
   const mainRef = useRef(null);
   useEffect(() => {
-    const f = () => setRoute(routeFromHash());
+    const f = () => { setRoute(routeFromHash()); setMenuOpen(false); };
     addEventListener("hashchange", f);
     return () => removeEventListener("hashchange", f);
   }, []);
-  const go = (p) => (location.hash = `/${p}`);
+  const go = (p) => { setMenuOpen(false); location.hash = `/${p}`; };
   useEffect(() => installBrowserApi(() => activeStudioFile), []);
   useEffect(() => { track("page_view"); }, [route]);
   useEffect(() => mainRef.current?.focus(), [route]);
   return (
     <div className="app">
-      <header className="topbar">
+      <header className="topbar" onKeyDown={(event) => {
+        if (event.key === "Escape" && menuOpen) {
+          setMenuOpen(false);
+          event.currentTarget.querySelector(".menu-toggle")?.focus();
+        }
+      }}>
         <button className="wordmark" onClick={() => go("studio")}>
           <Logo />
           <span>Syntag</span>
         </button>
-        <nav>
+        <button className="menu-toggle" aria-expanded={menuOpen} aria-controls="site-navigation"
+          onClick={() => setMenuOpen((open) => !open)}>
+          {menuOpen ? "Close" : "Menu"}<Icon name="chevron" />
+        </button>
+        <nav id="site-navigation" aria-label="Main navigation" className={menuOpen ? "is-open" : ""}>
           {pages.map(([id, label]) => (
             <button
               key={id}
@@ -228,7 +238,7 @@ function Studio() {
               <button className="empty upload-area" onClick={() => input.current?.click()}>
                 <span className="upload-icon"><Icon name="upload" /></span>
                 <h3>A little transparency starts here.</h3>
-                <p>Drop your file here, or <span>browse files</span></p>
+                <p><span className="upload-desktop-hint">Drop your file here, or </span><span>browse files</span></p>
                 <small className="file-types">Image · Video · Audio · PDF</small>
               </button>
             )}
