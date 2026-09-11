@@ -80,24 +80,34 @@ function App() {
     return pages.some(([id]) => id === value) ? value : "studio";
   };
   const [route, setRoute] = useState(routeFromHash());
+  const [menuOpen, setMenuOpen] = useState(false);
   const mainRef = useRef(null);
   useEffect(() => {
-    const f = () => setRoute(routeFromHash());
+    const f = () => { setRoute(routeFromHash()); setMenuOpen(false); };
     addEventListener("hashchange", f);
     return () => removeEventListener("hashchange", f);
   }, []);
-  const go = (p) => (location.hash = `/${p}`);
+  const go = (p) => { setMenuOpen(false); location.hash = `/${p}`; };
   useEffect(() => installBrowserApi(() => activeStudioFile), []);
   useEffect(() => { track("page_view"); }, [route]);
   useEffect(() => mainRef.current?.focus(), [route]);
   return (
     <div className="app">
-      <header className="topbar">
+      <header className="topbar" onKeyDown={(event) => {
+        if (event.key === "Escape" && menuOpen) {
+          setMenuOpen(false);
+          event.currentTarget.querySelector(".menu-toggle")?.focus();
+        }
+      }}>
         <button className="wordmark" onClick={() => go("studio")}>
           <Logo />
           <span>Syntag</span>
         </button>
-        <nav>
+        <button className="menu-toggle" aria-expanded={menuOpen} aria-controls="site-navigation"
+          onClick={() => setMenuOpen((open) => !open)}>
+          {menuOpen ? "Close" : "Menu"}<Icon name="chevron" />
+        </button>
+        <nav id="site-navigation" aria-label="Main navigation" className={menuOpen ? "is-open" : ""}>
           {pages.map(([id, label]) => (
             <button
               key={id}
@@ -228,7 +238,7 @@ function Studio() {
               <button className="empty upload-area" onClick={() => input.current?.click()}>
                 <span className="upload-icon"><Icon name="upload" /></span>
                 <h3>A little transparency starts here.</h3>
-                <p>Drop your file here, or <span>browse files</span></p>
+                <p><span className="upload-desktop-hint">Drop your file here, or </span><span>browse files</span></p>
                 <small className="file-types">Image · Video · Audio · PDF</small>
               </button>
             )}
@@ -592,8 +602,8 @@ function Convention() {
 function Developers() {
   return (
     <Page
-      title="Browser API and JSON-RPC"
-      intro="Both interfaces call the same browser-side processor."
+      title="Browser API, Local MCP & API"
+      intro="Choose browser-local or desktop-local integration. Asset bytes stay on the user’s device."
     >
       <div className="code-grid">
         <Code
@@ -605,12 +615,73 @@ function Developers() {
           code={`{\n  "name": "syntag_tag_asset",\n  "arguments": {\n    "settings": {\n      "level": "generated",\n      "theme": "eu",\n      "euVariant": "auto",\n      "position": "bottom-right",\n      "size": "medium",\n      "opacity": 1,\n      "sidecar": true\n    }\n  }\n}`}
         />
       </div>
+      <div className="code-grid local-integration-grid">
+        <Code
+          title="Local MCP"
+          code={`npm run local:mcp\n\n// MCP client config\n{\n  "command": "npm",\n  "args": ["run", "local:mcp"]\n}`}
+        />
+        <Code
+          title="Local HTTP API"
+          code={`POST http://127.0.0.1:4317/v1/tag\n\n{\n  "filename": "image.png",\n  "assetBase64": "...",\n  "settings": {\n    "level": "generated",\n    "theme": "eu"\n  }\n}`}
+        />
+      </div>
+      <section className="developer-explainer">
+        <div className="developer-explainer-intro">
+          <h2>Choose the route that keeps your file where it already is.</h2>
+          <p>
+            Syntag can tag a browser file, a file on your computer, or image
+            data sent to a loopback service. The label settings stay the same;
+            only the handoff changes.
+          </p>
+        </div>
+        <div className="developer-flow">
+          <article>
+            <span className="flow-number">01</span>
+            <h3>Browser API</h3>
+            <p>
+              Your web app passes a browser <code>File</code> object to
+              <code> Syntag.process()</code>. The browser creates a new tagged
+              file and local metadata; no file upload is needed.
+            </p>
+          </article>
+          <article>
+            <span className="flow-number">02</span>
+            <h3>Local MCP</h3>
+            <p>
+              A desktop AI client launches <code>local:mcp</code> as a child
+              process. The MCP tool receives a local path and settings, then
+              writes the tagged image beside the source file.
+            </p>
+          </article>
+          <article>
+            <span className="flow-number">03</span>
+            <h3>Local HTTP API</h3>
+            <p>
+              A script or creative application posts an image to
+              <code>127.0.0.1:4317</code>. The local service returns the tagged
+              asset; the endpoint is not hosted on or routed through Syntag.
+            </p>
+          </article>
+        </div>
+        <div className="developer-note">
+          <strong>What developers need to remember</strong>
+          <span>
+            The browser bridge on this page is a demonstration of the MCP
+            contract. It uses the selected browser file. The local MCP and API
+            processes are for desktop automation and currently support images.
+            None of these local workflows require a Syntag account or a public
+            server endpoint.
+          </span>
+        </div>
+      </section>
       <RpcConsole />
       <p className="footnote">
         The browser bridge is the working integration: it calls the same
         processor as Studio and keeps the selected file in the browser session.
-        A standalone stdio transport can be added when an external host needs
-        to connect to the browser.
+        For desktop automation, the repository also includes an opt-in local
+        MCP/API companion (`npm run local:mcp` or `npm run local:api`) that
+        processes image files on the user’s device and never contacts a Syntag
+        server. The local companion currently supports images.
       </p>
     </Page>
   );

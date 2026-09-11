@@ -14,6 +14,50 @@ npm run dev
 
 Validation: `npm run build`, `npm test`, and `npm run lint`.
 
+## Local MCP and API
+
+Syntag also includes an opt-in local companion process for developers who need
+automation without sending image bytes to Syntag or any other remote server.
+It binds to `127.0.0.1` only and supports image tagging.
+
+Run the local HTTP API:
+
+```sh
+npm run local:api
+curl http://127.0.0.1:4317/healthz
+```
+
+The `POST /v1/tag` endpoint accepts JSON containing `filename`, `assetBase64`,
+and optional `settings`, then returns the tagged asset as `outputBase64`.
+
+For MCP desktop clients, configure the local stdio server:
+
+```json
+{
+  "mcpServers": {
+    "syntag-local": {
+      "command": "npm",
+      "args": ["run", "local:mcp", "--prefix", "/path/to/syntag"]
+    }
+  }
+}
+```
+
+The MCP tool is `syntag_tag_asset` and accepts a local `filePath` plus the same
+disclosure settings used by Studio. The tagged output is written beside the
+source file. The local process makes no outbound network requests.
+
+Once published, the same tool can be installed without cloning the repository:
+
+```sh
+npx @sabszh/syntag-local mcp
+npx @sabszh/syntag-local api
+npx @sabszh/syntag-local tag ./image.png
+```
+
+The package is intended for local use. It does not upload files, require a
+Syntag account, or contact `syntag.eu`.
+
 ## Deploy to Cloudflare from GitHub
 
 The repository is configured for Cloudflare Workers Static Assets. Cloudflare
