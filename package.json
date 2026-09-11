@@ -1,14 +1,34 @@
 {
-  "name": "syntag-eu",
-  "private": true,
-  "version": "0.3.0",
+  "name": "@sabszh/syntag-local",
+  "private": false,
+  "version": "0.3.1",
   "type": "module",
+  "description": "Local MCP server and API for privacy-preserving Syntag image disclosure tagging.",
+  "bin": {
+    "syntag": "scripts/syntag-local.mjs"
+  },
+  "files": [
+    "scripts/syntag-local.mjs",
+    "src/lib/disclosure.js",
+    "public/eu-*.svg",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sabszh/syntag.eu.git"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "lint": "eslint src",
+    "lint": "eslint src scripts",
+    "local:mcp": "node scripts/syntag-local.mjs --stdio",
+    "local:api": "node scripts/syntag-local.mjs",
     "deploy": "npm run build && wrangler deploy",
     "check:cloudflare": "npm run build && wrangler deploy --dry-run"
   },
@@ -17,6 +37,7 @@
     "pdf-lib": "^1.17.1",
     "react": "latest",
     "react-dom": "latest",
+    "sharp": "^0.35.2",
     "vite": "latest"
   },
   "devDependencies": {
