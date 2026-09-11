@@ -1488,7 +1488,7 @@ body::before { content: none; }
   padding: 8px 16px;
   border: 1px solid rgba(255, 255, 255, .7);
   border-radius: 18px;
-  background: linear-gradient(110deg, rgba(255, 255, 255, .72), rgba(255, 255, 255, .38));
+  background: linear-gradient(110deg, rgba(236, 241, 245, .94), rgba(247, 249, 250, .88));
   backdrop-filter: blur(22px) saturate(130%);
   -webkit-backdrop-filter: blur(22px) saturate(130%);
   backdrop-filter: blur(22px) saturate(130%);
