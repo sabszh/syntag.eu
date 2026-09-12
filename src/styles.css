@@ -1407,6 +1407,52 @@ body::before { content: none; }
 .decision-result span { color: var(--muted); }
 .decision-result.required { border-left-color: #8b2b1f; }
 .decision-result.optional { border-left-color: #76766e; }
+.guidance-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(260px, .9fr);
+  gap: clamp(32px, 8vw, 120px);
+  align-items: start;
+  max-width: 1080px;
+}
+.guidance-layout .decision-assistant {
+  margin: 0;
+  padding: 26px 0 28px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.guidance-layout .decision-heading h3 { font-size: clamp(28px, 4vw, 44px); }
+.guidance-layout .decision-intro { max-width: 430px; font-size: 13px; }
+.guidance-layout .decision-question { padding: 18px 0; }
+.guidance-layout .decision-question strong { font-size: 13px; }
+.guidance-layout .decision-options { gap: 8px; }
+.guidance-layout .decision-options button { min-height: 38px; padding: 0 15px; font-size: 12px; }
+.guidance-layout .decision-result { margin-top: 20px; padding: 16px; font-size: 13px; }
+.guidance-notes {
+  padding-top: 26px;
+  border-top: 1px solid var(--line);
+}
+.guidance-notes h2 {
+  max-width: 330px;
+  margin: 18px 0 14px;
+  font: 400 clamp(28px, 4vw, 46px)/1.05 Georgia, serif;
+  letter-spacing: -.035em;
+}
+.guidance-notes p {
+  max-width: 360px;
+  margin: 0 0 16px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.7;
+}
+.text-link {
+  display: inline-flex;
+  gap: 8px;
+  margin-top: 14px;
+  color: var(--ink);
+  font-size: 12px;
+  text-underline-offset: 4px;
+}
+.text-link span { text-decoration: none; }
 .inspector .rail-head h2 { font-size: 14px; font-weight: 600; }
 .inspector .tag-sample { min-height: 62px; margin: 14px 0; border-radius: 0; background: transparent; border-bottom: 1px solid var(--line); }
 .inspector .tag-sample { display: none; }
@@ -1647,6 +1693,9 @@ body::before { content: none; }
   .page-intro { padding-top: 24px; }
 }
 @media (max-width: 720px) {
+  .guidance-layout { grid-template-columns: 1fr; gap: 44px; }
+  .guidance-layout .decision-assistant { padding-top: 20px; }
+  .guidance-notes { padding-top: 22px; }
   .developer-explainer-intro, .developer-flow { grid-template-columns: 1fr; }
   .developer-links { display: grid; gap: 14px; margin-bottom: 42px; }
   .developer-links a { justify-content: space-between; }

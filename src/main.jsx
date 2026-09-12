@@ -25,6 +25,7 @@ function track(event, details = {}) {
 }
 const pages = [
   ["studio", "Studio"],
+  ["guidance", "Guidance"],
   ["convention", "Convention"],
   ["developers", "Developers"],
   ["trust", "Trust"],
@@ -123,6 +124,8 @@ function App() {
       <main key={route} className="route" tabIndex="-1" ref={mainRef}>
         {route === "studio" ? (
           <Studio />
+        ) : route === "guidance" ? (
+          <Guidance />
         ) : route === "convention" ? (
           <Convention />
         ) : route === "developers" ? (
@@ -185,6 +188,33 @@ function DecisionAssistant() {
       </>}
       {result && <div className={`decision-result ${result.tone}`} role="status"><strong>{result.title}</strong><span>{result.body}</span></div>}
     </section>
+  );
+}
+
+function Guidance() {
+  return (
+    <Page
+      title="Should this be labelled?"
+      intro="A short publishing check for deciding when an AI disclosure is the sensible next step."
+    >
+      <div className="guidance-layout">
+        <DecisionAssistant />
+        <aside className="guidance-notes">
+          <span className="decision-kicker">How to use this</span>
+          <h2>Make the call before you publish.</h2>
+          <p>
+            The questions look at how AI was used, what the content appears to
+            show, and where it will be published. They are deliberately quick:
+            use the result to start a review, not to replace one.
+          </p>
+          <p>
+            If you are unsure, keep the disclosure. A clear label gives people
+            useful context when the asset leaves Syntag and is reshared.
+          </p>
+          <a className="text-link" href="#/convention">See the disclosure levels <span>↗</span></a>
+        </aside>
+      </div>
+    </Page>
   );
 }
 
@@ -308,7 +338,6 @@ function Studio() {
               </button>
             }
           />
-          <DecisionAssistant />
           <Control label="Label">
             <div className="choices disclosure-buttons" role="group" aria-label="Disclosure label">
               {Object.entries(LEVELS).map(([value, item]) => (
