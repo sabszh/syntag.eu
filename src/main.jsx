@@ -371,6 +371,7 @@ function Verification() {
             <div className="verification-facts">
               <div><span>Embedded disclosure</span><strong>{report.embedded ? report.label || "Present" : "Not found"}</strong></div>
               <div><span>Disclosure level</span><strong>{report.level || "Not found"}</strong></div>
+              <div><span>C2PA Content Credentials</span><strong className={report.c2pa.present ? (report.c2pa.valid ? "match" : "mismatch") : ""}>{report.c2pa.present ? (report.c2pa.valid ? "Found and valid" : "Found with validation issues") : "Not found"}</strong></div>
               <div><span>SHA-256</span><code>{report.sha256}</code></div>
               {report.sidecar && <div><span>Sidecar hash</span><strong className={report.sidecarMatches ? "match" : "mismatch"}>{report.sidecarMatches ? "Matches asset" : "Does not match asset"}</strong></div>}
               {report.sidecarError && <div><span>Sidecar</span><strong className="mismatch">{report.sidecarError}</strong></div>}

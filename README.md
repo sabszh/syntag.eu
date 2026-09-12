@@ -70,6 +70,12 @@ labels and the corresponding metadata; the EU icon remains language-neutral.
 Batch processing creates one ZIP locally and can include a JSON sidecar for
 each asset.
 
+Verify can also read an existing C2PA Content Credential in the browser using
+the official `c2pa-web` reader. Syntag does not create a fake unsigned
+credential: signing requires a configured certificate and private key. Current
+Syntag exports therefore report C2PA as absent while keeping the XMP and
+sidecar provenance explicit.
+
 ## Deploy to Cloudflare from GitHub
 
 The repository is configured for Cloudflare Workers Static Assets. Cloudflare
