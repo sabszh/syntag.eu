@@ -10,8 +10,10 @@ import http from "node:http";
 import { readFile } from "node:fs/promises";
 import { basename, extname, resolve } from "node:path";
 import process from "node:process";
+import { createHash } from "node:crypto";
 import sharp from "sharp";
 import { LEVELS, normalizeOptions } from "../src/lib/disclosure.js";
+import { buildXmp } from "../src/lib/xmp.js";
 
 const HOST = process.env.SYNTAG_LOCAL_HOST || "127.0.0.1";
 const PORT = Number(process.env.SYNTAG_LOCAL_PORT || 4317);
@@ -35,6 +37,7 @@ const tool = {
           position: { enum: ["top-left", "top-right", "center", "bottom-left", "bottom-right"] },
           size: { enum: ["small", "medium", "large"] },
           opacity: { type: "number", minimum: 0.35, maximum: 1 },
+          embedMetadata: { type: "boolean" },
         },
       },
     },
@@ -82,7 +85,11 @@ async function euOverlay(width, height, options) {
   const th = Math.min(fontSize * 1.65, height * 0.8);
   const tw = Math.min(th * (icon.width / icon.height), width * 0.9);
   const [x, y] = positionFor(width, height, tw, th, options.position);
-  return { input: source, left: Math.round(x), top: Math.round(y), width: Math.round(tw), height: Math.round(th), opacity: options.opacity * (options.euVariant.endsWith("-50") ? 0.5 : 1) };
+  const resized = await sharp(source)
+    .resize({ width: Math.round(tw), height: Math.round(th) })
+    .png()
+    .toBuffer();
+  return { input: resized, left: Math.round(x), top: Math.round(y), opacity: options.opacity * (options.euVariant.endsWith("-50") ? 0.5 : 1) };
 }
 
 async function tagImage(input, filename, settings = {}) {
@@ -94,7 +101,28 @@ async function tagImage(input, filename, settings = {}) {
   if (!metadata.width || !metadata.height) throw new Error("Could not decode image");
   const overlay = options.theme === "eu" ? await euOverlay(metadata.width, metadata.height, options) : { input: textOverlay(metadata.width, metadata.height, options), left: 0, top: 0 };
   const outputType = metadata.format === "jpeg" ? "jpeg" : "png";
-  const output = await image.composite([overlay]).toFormat(outputType, outputType === "jpeg" ? { quality: 94 } : undefined).toBuffer();
+  const outputMime = `image/${outputType}`;
+  const provenance = {
+    visibleDisclosure: true,
+    embeddedXmp: options.embedMetadata !== false,
+    c2pa: false,
+  };
+  const sidecarMetadata = {
+    createdAt: new Date().toISOString(),
+    processing: "local-cli",
+    source: {
+      name: basename(filename),
+      type: metadata.format ? `image/${metadata.format}` : "image/*",
+      size: input.length,
+      sha256: createHash("sha256").update(input).digest("hex"),
+    },
+    disclosure: { ...options, label: LEVELS[options.level].label },
+    provenance,
+    output: { type: outputMime, extension: outputType },
+  };
+  const pipeline = image.composite([overlay]).withMetadata();
+  if (provenance.embeddedXmp) pipeline.withXmp(buildXmp(sidecarMetadata));
+  const output = await pipeline.toFormat(outputType, outputType === "jpeg" ? { quality: 94 } : undefined).toBuffer();
   return { output, contentType: `image/${outputType}`, filename: `${basename(filename, extname(filename))}-syntag.${outputType}`, options };
 }
 

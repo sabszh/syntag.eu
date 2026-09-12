@@ -19,6 +19,13 @@ export async function makeMetadata(file, options, output) {
       sha256: await sha256(file),
     },
     disclosure: { ...options, label: LEVELS[options.level].label },
+    provenance: {
+      visibleDisclosure: true,
+      embeddedXmp:
+        options.embedMetadata !== false &&
+        ["image/jpeg", "image/png"].includes(output.blob.type),
+      c2pa: false,
+    },
     output: { type: output.blob.type, extension: output.extension },
     notice:
       options.theme === "eu"

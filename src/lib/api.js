@@ -29,6 +29,7 @@ export const MCP_TOOL = {
             enum: ["auto", "black", "white", "black-50", "white-50"],
           },
           sidecar: { type: "boolean" },
+          embedMetadata: { type: "boolean" },
           audioTone: { type: "boolean" },
         },
       },

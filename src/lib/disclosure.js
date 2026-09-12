@@ -22,6 +22,7 @@ export const DEFAULTS = Object.freeze({
   size: "medium",
   opacity: 1,
   sidecar: true,
+  embedMetadata: true,
   euVariant: "auto",
   audioTone: true,
 });
@@ -48,6 +49,7 @@ export function normalizeOptions(input = {}) {
     Math.min(1, Number(o.opacity) || 1),
   );
   o.sidecar = o.sidecar !== false;
+  o.embedMetadata = o.embedMetadata !== false;
   o.audioTone = o.audioTone !== false;
   return o;
 }

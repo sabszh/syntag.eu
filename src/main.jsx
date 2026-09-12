@@ -377,6 +377,20 @@ function Studio() {
                 <i />
               </label>
             )}
+            {kind === "image" && (
+              <label className="sidecar">
+                <span>
+                  <strong>Embedded metadata</strong>
+                  <small>Add XMP/IPTC-compatible disclosure data to the image</small>
+                </span>
+                <input
+                  type="checkbox"
+                  checked={opts.embedMetadata}
+                  onChange={(e) => update("embedMetadata", e.target.checked)}
+                />
+                <i />
+              </label>
+            )}
           </div>
           {progress > 0 && (
             <progress className="export-progress" max="1" value={progress}>
@@ -679,8 +693,10 @@ function Developers() {
             The browser bridge on this page is a demonstration of the MCP
             contract. It uses the selected browser file. The local MCP and API
             processes are for desktop automation and currently support images.
-            None of these local workflows require a Syntag account or a public
-            server endpoint.
+            PNG and JPEG exports can also carry XMP/IPTC-compatible disclosure
+            metadata. That metadata is portable but not cryptographically
+            signed C2PA provenance. None of these local workflows require a
+            Syntag account or a public server endpoint.
           </span>
         </div>
       </section>

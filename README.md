@@ -47,6 +47,12 @@ The MCP tool is `syntag_tag_asset` and accepts a local `filePath` plus the same
 disclosure settings used by Studio. The tagged output is written beside the
 source file. The local process makes no outbound network requests.
 
+For PNG and JPEG image exports, embedded metadata is enabled by default. Syntag
+writes an XMP packet with IPTC-compatible disclosure fields, the disclosure
+level, processing mode, and source hash. This is portable metadata, not a
+cryptographically signed C2PA Content Credential. The JSON sidecar remains
+the fuller audit record.
+
 Once published, the same tool can be installed without cloning the repository:
 
 ```sh

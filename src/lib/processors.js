@@ -1,5 +1,6 @@
 import { LEVELS, euAsset, kindOf, normalizeOptions } from "./disclosure.js";
 import { makeMetadata } from "./metadata.js";
+import { embedXmp } from "./xmp.js";
 
 const sizeFactor = { small: 0.022, medium: 0.034, large: 0.05 };
 const euCache = new Map();
@@ -432,6 +433,7 @@ export async function processFile(file, input = {}, runtime = {}) {
   else output = await processAudio(file, options, ctx);
   ctx.onProgress(1, "Export ready");
   const metadata = await makeMetadata(file, options, output);
+  output.blob = await embedXmp(output.blob, metadata);
   return {
     ...output,
     options,
