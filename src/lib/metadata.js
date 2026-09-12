@@ -1,4 +1,4 @@
-import { LEVELS } from "./disclosure.js";
+import { getLabel } from "./locales.js";
 
 export async function sha256(file) {
   const d = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
@@ -18,7 +18,7 @@ export async function makeMetadata(file, options, output) {
       size: file.size,
       sha256: await sha256(file),
     },
-    disclosure: { ...options, label: LEVELS[options.level].label },
+    disclosure: { ...options, label: getLabel(options.level, options.language) },
     provenance: {
       visibleDisclosure: true,
       embeddedXmp:

@@ -13,6 +13,7 @@ import process from "node:process";
 import { createHash } from "node:crypto";
 import sharp from "sharp";
 import { LEVELS, normalizeOptions } from "../src/lib/disclosure.js";
+import { getLabel } from "../src/lib/locales.js";
 import { buildXmp } from "../src/lib/xmp.js";
 
 const HOST = process.env.SYNTAG_LOCAL_HOST || "127.0.0.1";
@@ -64,7 +65,7 @@ function escapeXml(value) {
 }
 
 function textOverlay(width, height, options) {
-  const label = LEVELS[options.level].label;
+  const label = getLabel(options.level, options.language);
   const fontSize = Math.max(13, Math.min(width, height) * ({ small: 0.022, medium: 0.034, large: 0.05 }[options.size] || 0.034));
   const pad = fontSize * 0.65;
   const badgeWidth = Math.max(fontSize * 7, fontSize * (label.length * 0.56 + 3.5));
@@ -116,7 +117,7 @@ async function tagImage(input, filename, settings = {}) {
       size: input.length,
       sha256: createHash("sha256").update(input).digest("hex"),
     },
-    disclosure: { ...options, label: LEVELS[options.level].label },
+    disclosure: { ...options, label: getLabel(options.level, options.language) },
     provenance,
     output: { type: outputMime, extension: outputType },
   };

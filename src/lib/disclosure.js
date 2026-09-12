@@ -1,3 +1,5 @@
+import { LANGUAGES } from "./locales.js";
+
 export const LEVELS = {
   involved: {
     label: "AI INVOLVED",
@@ -25,6 +27,7 @@ export const DEFAULTS = Object.freeze({
   embedMetadata: true,
   euVariant: "auto",
   audioTone: true,
+  language: "en",
 });
 export const POSITIONS = [
   "top-left",
@@ -51,6 +54,7 @@ export function normalizeOptions(input = {}) {
   o.sidecar = o.sidecar !== false;
   o.embedMetadata = o.embedMetadata !== false;
   o.audioTone = o.audioTone !== false;
+  if (!LANGUAGES[o.language]) o.language = DEFAULTS.language;
   return o;
 }
 

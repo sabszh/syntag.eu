@@ -13,6 +13,7 @@ import {
 import { processFile, drawTag } from "./lib/processors.js";
 import { downloadBlob, downloadResult } from "./lib/metadata.js";
 import { installBrowserApi } from "./lib/api.js";
+import { LANGUAGES, getLabel } from "./lib/locales.js";
 
 const labels = Object.fromEntries(
   Object.entries(LEVELS).map(([key, value]) => [key, value.label]),
@@ -312,6 +313,11 @@ function Batch() {
           <Control label="Theme"><div className="choices" role="group" aria-label="Batch theme">
             {["eu", "mono", "metal", "outline"].map((value) => <button key={value} type="button" className={opts.theme === value ? "selected" : ""} aria-pressed={opts.theme === value} onClick={() => setOpts({ ...opts, theme: value })}>{value}</button>)}
           </div></Control>
+          <Control label="Label language">
+            <select value={opts.language} onChange={(event) => setOpts({ ...opts, language: event.target.value })}>
+              {Object.entries(LANGUAGES).map(([value, language]) => <option key={value} value={value}>{language.name}</option>)}
+            </select>
+          </Control>
           <label className="sidecar batch-sidecar"><span><strong>Sidecar JSON</strong><small>Include a disclosure record for each file</small></span><input type="checkbox" checked={opts.sidecar} onChange={(event) => setOpts({ ...opts, sidecar: event.target.checked })} /><i /></label>
           {progress > 0 && <progress className="export-progress" aria-label="Batch export progress" max="1" value={progress}>{Math.round(progress * 100)}%</progress>}
           <button className="export" type="button" disabled={!files.length || processing} onClick={exportBatch}><Icon name="download" /><span>{processing ? "Processing…" : "Export ZIP"}</span></button>
@@ -475,6 +481,11 @@ function Studio() {
                 </button>
               ))}
             </div>
+          </Control>
+          <Control label="Label language">
+            <select value={opts.language} onChange={(event) => update("language", event.target.value)}>
+              {Object.entries(LANGUAGES).map(([value, language]) => <option key={value} value={value}>{language.name}</option>)}
+            </select>
           </Control>
           <Control label="Size">
             <div className="choices">
@@ -673,7 +684,7 @@ function Preview({ file, url, opts, videoReady }) {
     };
   }, [file, opts, videoReady]);
   if (file.type.startsWith("image/"))
-    return <>{error ? <p role="alert">{error}</p> : <canvas ref={canvas} className="image-preview" role="img" aria-label={`Asset preview with ${labels[opts.level]}`} />}</>;
+    return <>{error ? <p role="alert">{error}</p> : <canvas ref={canvas} className="image-preview" role="img" aria-label={`Asset preview with ${getLabel(opts.level, opts.language)}`} />}</>;
   if (file.type.startsWith("video/")) {
     if (!videoReady) return <div className="video-gate"><span className="video-gate-icon">▶</span><strong>Choose a disclosure to load the video</strong><small>Select a label or theme in the panel.</small></div>;
     return videoPreview ? (
@@ -704,7 +715,7 @@ function Tag({ opts }) {
         className={`tag eu ${opts.size} ${opts.position} eu-${opts.euVariant}`}
         style={{ opacity: opts.opacity }}
         role="img"
-        aria-label={`EU icon: ${labels[opts.level]}`}
+        aria-label={`EU icon: ${getLabel(opts.level, opts.language)}`}
       >
         <img
           src={euAsset(
@@ -722,7 +733,7 @@ function Tag({ opts }) {
       style={{ opacity: opts.opacity }}
     >
       <span className="ai-glyph">AI</span>
-      <b>{labels[opts.level]}</b>
+      <b>{getLabel(opts.level, opts.language)}</b>
     </div>
   );
 }

@@ -1,4 +1,5 @@
-import { LEVELS, euAsset, kindOf, normalizeOptions } from "./disclosure.js";
+import { euAsset, kindOf, normalizeOptions } from "./disclosure.js";
+import { getLabel } from "./locales.js";
 import { makeMetadata } from "./metadata.js";
 import { embedXmp } from "./xmp.js";
 
@@ -107,7 +108,7 @@ export async function drawTag(ctx, w, h, input = {}) {
     ctx.restore();
     return { x, y, width: tw, height: th, variant };
   }
-  const text = LEVELS[o.level].label,
+  const text = getLabel(o.level, o.language),
     pad = fs * 0.65,
     gap = fs * 0.35,
     iw = fs * 0.95;
@@ -287,7 +288,7 @@ async function processPdf(file, o, { signal, onProgress }) {
         opacity: o.opacity * (o.euVariant.endsWith("-50") ? 0.5 : 1),
       });
     } else {
-      const text = LEVELS[o.level].label,
+      const text = getLabel(o.level, o.language),
         pad = fs * 0.65,
         gap = fs * 0.35,
         iw = fs * 0.95,
@@ -346,7 +347,7 @@ function encodeWav(buffer, o) {
     total = lead + buffer.length,
     align = channels * 2,
     dataSize = total * align,
-    comment = `Syntag disclosure: ${LEVELS[o.level].label}; source=browser-local`,
+    comment = `Syntag disclosure: ${getLabel(o.level, o.language)}; source=browser-local`,
     info = new TextEncoder().encode(comment + "\0"),
     pad = info.length % 2,
     infoSize = 4 + 8 + info.length + pad,

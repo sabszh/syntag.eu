@@ -31,6 +31,10 @@ export const MCP_TOOL = {
           sidecar: { type: "boolean" },
           embedMetadata: { type: "boolean" },
           audioTone: { type: "boolean" },
+          language: {
+            enum: ["en", "da", "de", "fr", "es", "it", "nl", "pl"],
+            description: "Language used for text-based disclosure labels.",
+          },
         },
       },
     },

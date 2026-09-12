@@ -10,6 +10,7 @@
   "files": [
     "scripts/syntag-local.mjs",
     "src/lib/disclosure.js",
+    "src/lib/locales.js",
     "src/lib/xmp.js",
     "public/eu-*.svg",
     "README.md"

@@ -64,6 +64,12 @@ npx @sabszh/syntag-local tag ./image.png
 The package is intended for local use. It does not upload files, require a
 Syntag account, or contact `syntag.eu`.
 
+Studio and Batch include a label-language setting for English, Danish, German,
+French, Spanish, Italian, Dutch, and Polish. It changes text-based disclosure
+labels and the corresponding metadata; the EU icon remains language-neutral.
+Batch processing creates one ZIP locally and can include a JSON sidecar for
+each asset.
+
 ## Deploy to Cloudflare from GitHub
 
 The repository is configured for Cloudflare Workers Static Assets. Cloudflare

@@ -29,6 +29,7 @@ export function buildXmp(metadata) {
       <dc:title><rdf:Alt><rdf:li xml:lang="x-default">Syntag disclosure</rdf:li></rdf:Alt></dc:title>
       <syntag:DisclosureLevel>${escapeXml(metadata.disclosure.level)}</syntag:DisclosureLevel>
       <syntag:DisclosureLabel>${escapeXml(label)}</syntag:DisclosureLabel>
+      <syntag:DisclosureLanguage>${escapeXml(metadata.disclosure.language || "en")}</syntag:DisclosureLanguage>
       <syntag:Theme>${escapeXml(metadata.disclosure.theme)}</syntag:Theme>
       <syntag:Processing>${escapeXml(metadata.processing)}</syntag:Processing>
       <syntag:SourceSHA256>${escapeXml(metadata.source.sha256)}</syntag:SourceSHA256>

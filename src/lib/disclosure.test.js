@@ -6,6 +6,7 @@ import {
   normalizeOptions,
   validateFile,
 } from "./disclosure.js";
+import { getLabel } from "./locales.js";
 
 const file = (name, type, size = 10) => ({ name, type, size });
 describe("disclosure model", () => {
@@ -18,6 +19,11 @@ describe("disclosure model", () => {
     }));
   it("enforces EU minimum opacity", () =>
     expect(normalizeOptions({ theme: "eu", opacity: 0.1 }).opacity).toBe(0.5));
+  it("accepts supported label languages and falls back safely", () => {
+    expect(normalizeOptions({ language: "da" }).language).toBe("da");
+    expect(normalizeOptions({ language: "xx" }).language).toBe("en");
+    expect(getLabel("generated", "da")).toBe("AI-GENERERET");
+  });
   it("maps EU semantic levels", () =>
     expect(euAsset("modified")).toBe("/eu-modified-black.svg"));
   it("recognizes supported kinds", () => {
