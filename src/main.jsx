@@ -14,6 +14,7 @@ import { processFile, drawTag } from "./lib/processors.js";
 import { downloadBlob, downloadResult } from "./lib/metadata.js";
 import { installBrowserApi } from "./lib/api.js";
 import { LANGUAGES, getLabel } from "./lib/locales.js";
+import { inspectAsset } from "./lib/verification.js";
 
 const labels = Object.fromEntries(
   Object.entries(LEVELS).map(([key, value]) => [key, value.label]),
@@ -28,6 +29,7 @@ function track(event, details = {}) {
 const pages = [
   ["studio", "Studio"],
   ["batch", "Batch"],
+  ["verify", "Verify"],
   ["guidance", "Guidance"],
   ["convention", "Convention"],
   ["developers", "Developers"],
@@ -129,6 +131,8 @@ function App() {
           <Studio />
         ) : route === "batch" ? (
           <Batch />
+        ) : route === "verify" ? (
+          <Verification />
         ) : route === "guidance" ? (
           <Guidance />
         ) : route === "convention" ? (
@@ -323,6 +327,56 @@ function Batch() {
           <button className="export" type="button" disabled={!files.length || processing} onClick={exportBatch}><Icon name="download" /><span>{processing ? "Processing…" : "Export ZIP"}</span></button>
           <p className="batch-notice" role="status">{notice}</p>
         </aside>
+      </div>
+    </Page>
+  );
+}
+
+function Verification() {
+  const assetInput = useRef(null);
+  const sidecarInput = useRef(null);
+  const [asset, setAsset] = useState(null);
+  const [sidecar, setSidecar] = useState(null);
+  const [report, setReport] = useState(null);
+  const [working, setWorking] = useState(false);
+
+  async function inspect() {
+    if (!asset) return;
+    setWorking(true);
+    try { setReport(await inspectAsset(asset, sidecar)); }
+    finally { setWorking(false); }
+  }
+  return (
+    <Page
+      title="Check what travelled with the file."
+      intro="Inspect Syntag metadata and sidecar records locally. Nothing is uploaded for verification."
+    >
+      <div className="verification-layout">
+        <section className="verification-picker">
+          <input ref={assetInput} hidden type="file" accept="image/*,video/*,audio/*,.pdf" onChange={(event) => { setAsset(event.target.files[0] || null); setReport(null); event.target.value = ""; }} />
+          <button className="verification-file" type="button" onClick={() => assetInput.current?.click()}>
+            <strong>{asset ? asset.name : "Choose an exported asset"}</strong>
+            <span>{asset ? `${kindOf(asset)?.toUpperCase() || "FILE"} · ${formatBytes(asset.size)}` : "The file stays in this browser"}</span>
+          </button>
+          <input ref={sidecarInput} hidden type="file" accept="application/json,.json" onChange={(event) => { setSidecar(event.target.files[0] || null); setReport(null); event.target.value = ""; }} />
+          <button className="verification-file secondary" type="button" onClick={() => sidecarInput.current?.click()}>
+            <strong>{sidecar ? sidecar.name : "Add a sidecar (optional)"}</strong>
+            <span>{sidecar ? "Ready to compare with the asset" : "Use the .syntag.json exported beside the file"}</span>
+          </button>
+          <button className="export verification-action" type="button" disabled={!asset || working} onClick={inspect}>{working ? "Inspecting…" : "Inspect locally"}</button>
+        </section>
+        <section className="verification-report" aria-live="polite">
+          {!report ? <><h2>What this checks</h2><p>Embedded XMP disclosure fields, the Syntag processing marker, and whether an optional sidecar hash matches the selected asset.</p><p className="verification-note">A matching record is evidence of what is present in the file. It is not a cryptographic C2PA signature.</p></> : <>
+            <h2>{report.embedded ? "Syntag metadata found" : "No Syntag metadata found"}</h2>
+            <div className="verification-facts">
+              <div><span>Embedded disclosure</span><strong>{report.embedded ? report.label || "Present" : "Not found"}</strong></div>
+              <div><span>Disclosure level</span><strong>{report.level || "Not found"}</strong></div>
+              <div><span>SHA-256</span><code>{report.sha256}</code></div>
+              {report.sidecar && <div><span>Sidecar hash</span><strong className={report.sidecarMatches ? "match" : "mismatch"}>{report.sidecarMatches ? "Matches asset" : "Does not match asset"}</strong></div>}
+              {report.sidecarError && <div><span>Sidecar</span><strong className="mismatch">{report.sidecarError}</strong></div>}
+            </div>
+          </>}
+        </section>
       </div>
     </Page>
   );

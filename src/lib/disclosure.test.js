@@ -7,6 +7,8 @@ import {
   validateFile,
 } from "./disclosure.js";
 import { getLabel } from "./locales.js";
+import { sha256 } from "./metadata.js";
+import { inspectAsset } from "./verification.js";
 
 const file = (name, type, size = 10) => ({ name, type, size });
 describe("disclosure model", () => {
@@ -23,6 +25,14 @@ describe("disclosure model", () => {
     expect(normalizeOptions({ language: "da" }).language).toBe("da");
     expect(normalizeOptions({ language: "xx" }).language).toBe("en");
     expect(getLabel("generated", "da")).toBe("AI-GENERERET");
+  });
+  it("checks embedded metadata and a matching sidecar", async () => {
+    const file = new File([
+      '<syntag:DisclosureLevel>generated</syntag:DisclosureLevel><syntag:DisclosureLabel>AI GENERATED</syntag:DisclosureLabel>',
+    ], "asset.png", { type: "image/png" });
+    const report = await inspectAsset(file, new File([JSON.stringify({ source: { sha256: await sha256(file) } })], "asset.syntag.json"));
+    expect(report.embedded).toBe(true);
+    expect(report.sidecarMatches).toBe(true);
   });
   it("maps EU semantic levels", () =>
     expect(euAsset("modified")).toBe("/eu-modified-black.svg"));

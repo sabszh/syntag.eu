@@ -1498,6 +1498,41 @@ body::before { content: none; }
 .batch-sidecar { margin: 20px 0; }
 .batch-settings .export-progress { display: block; width: 100%; margin: 18px 0; }
 .batch-notice { min-height: 20px; margin: 12px 0 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
+.verification-layout {
+  display: grid;
+  grid-template-columns: minmax(0, .9fr) minmax(280px, 1.1fr);
+  gap: clamp(32px, 8vw, 120px);
+  align-items: start;
+  max-width: 1120px;
+}
+.verification-picker { display: grid; gap: 12px; }
+.verification-file {
+  display: grid;
+  gap: 7px;
+  min-height: 92px;
+  padding: 20px;
+  text-align: left;
+  color: var(--ink);
+  background: rgba(255, 255, 255, .45);
+  border: 1px solid #d2d2ca;
+  border-radius: 12px;
+}
+.verification-file:hover { border-color: var(--ink); background: rgba(255, 255, 255, .72); }
+.verification-file strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 550; }
+.verification-file span { color: var(--muted); font-size: 11px; }
+.verification-file.secondary { background: transparent; border-style: dashed; }
+.verification-action { margin-top: 8px; }
+.verification-report { padding-top: 26px; border-top: 1px solid var(--line); }
+.verification-report h2 { margin: 0 0 14px; font: 400 clamp(28px, 4vw, 46px)/1.05 Georgia, serif; letter-spacing: -.035em; }
+.verification-report p { max-width: 420px; margin: 0 0 17px; color: var(--muted); font-size: 13px; line-height: 1.7; }
+.verification-note { padding-top: 17px; border-top: 1px solid var(--line); font-size: 11px !important; }
+.verification-facts { display: grid; gap: 0; }
+.verification-facts > div { display: grid; gap: 5px; padding: 15px 0; border-bottom: 1px solid var(--line); }
+.verification-facts span { color: var(--muted); font-size: 11px; }
+.verification-facts strong { font-size: 14px; font-weight: 550; }
+.verification-facts code { overflow-wrap: anywhere; color: var(--muted); font-size: 10px; }
+.verification-facts .match { color: #35613f; }
+.verification-facts .mismatch { color: #8b2b1f; }
 .inspector .rail-head h2 { font-size: 14px; font-weight: 600; }
 .inspector .tag-sample { min-height: 62px; margin: 14px 0; border-radius: 0; background: transparent; border-bottom: 1px solid var(--line); }
 .inspector .tag-sample { display: none; }
@@ -1743,6 +1778,8 @@ body::before { content: none; }
   .batch-layout { grid-template-columns: 1fr; gap: 44px; }
   .batch-drop { min-height: 190px; }
   .batch-settings { padding-top: 22px; }
+  .verification-layout { grid-template-columns: 1fr; gap: 44px; }
+  .verification-report { padding-top: 22px; }
   .developer-explainer-intro, .developer-flow { grid-template-columns: 1fr; }
   .developer-links { display: grid; gap: 14px; margin-bottom: 42px; }
   .developer-links a { justify-content: space-between; }
