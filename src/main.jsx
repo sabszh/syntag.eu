@@ -150,6 +150,44 @@ function SiteFooter() {
   );
 }
 
+function DecisionAssistant() {
+  const [answers, setAnswers] = useState({ aiUsed: null, realistic: null, publicInterest: null, humanReview: null });
+  const setAnswer = (key, value) => setAnswers((current) => ({ ...current, [key]: value }));
+  const reset = () => setAnswers({ aiUsed: null, realistic: null, publicInterest: null, humanReview: null });
+  const result = answers.aiUsed === "no"
+    ? { tone: "optional", title: "No AI disclosure selected", body: "If no AI was used, Syntag does not need to add an AI label." }
+    : answers.aiUsed === "yes" && (answers.realistic === "yes" || answers.publicInterest === "yes")
+      ? { tone: "required", title: "Disclosure likely required", body: "The content may fall into a higher-risk disclosure context. Check the rules that apply to your publication before relying on this result." }
+      : answers.aiUsed === "yes" && answers.humanReview === "yes"
+        ? { tone: "recommended", title: "Disclosure recommended", body: "Human review matters, but it does not by itself remove the need to disclose AI involvement." }
+        : answers.aiUsed === "yes"
+          ? { tone: "recommended", title: "Disclosure recommended", body: "If AI materially contributed, a visible label is the safer publishing choice." }
+          : null;
+  const options = (key, values) => (
+    <div className="decision-options" role="group" aria-label={key}>
+      {values.map(([value, label]) => (
+        <button key={value} type="button" aria-pressed={answers[key] === value} className={answers[key] === value ? "selected" : ""} onClick={() => setAnswer(key, value)}>{label}</button>
+      ))}
+    </div>
+  );
+  return (
+    <section className="decision-assistant" aria-labelledby="decision-title">
+      <div className="decision-heading">
+        <div><span className="decision-kicker">Before you export</span><h3 id="decision-title">Do I need to label this?</h3></div>
+        <button className="decision-reset" type="button" onClick={reset} disabled={!Object.values(answers).some(Boolean)}>Reset</button>
+      </div>
+      <p className="decision-intro">A quick publishing check. It is guidance, not legal advice.</p>
+      <div className="decision-question"><strong>Was AI used in making or changing it?</strong>{options("aiUsed", [["yes", "Yes"], ["no", "No"]])}</div>
+      {answers.aiUsed === "yes" && <>
+        <div className="decision-question"><strong>Does it resemble a real person, place, object, or event?</strong>{options("realistic", [["yes", "Yes"], ["no", "No"], ["unsure", "Not sure"]])}</div>
+        <div className="decision-question"><strong>Is it published text or media about a matter of public interest?</strong>{options("publicInterest", [["yes", "Yes"], ["no", "No"], ["unsure", "Not sure"]])}</div>
+        <div className="decision-question"><strong>Was there meaningful human editorial review?</strong>{options("humanReview", [["yes", "Yes"], ["no", "No"], ["unsure", "Not sure"]])}</div>
+      </>}
+      {result && <div className={`decision-result ${result.tone}`} role="status"><strong>{result.title}</strong><span>{result.body}</span></div>}
+    </section>
+  );
+}
+
 function Studio() {
   const input = useRef(null);
   const [file, setFile] = useState(null);
@@ -270,6 +308,7 @@ function Studio() {
               </button>
             }
           />
+          <DecisionAssistant />
           <Control label="Label">
             <div className="choices disclosure-buttons" role="group" aria-label="Disclosure label">
               {Object.entries(LEVELS).map(([value, item]) => (

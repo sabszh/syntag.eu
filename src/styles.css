@@ -1390,6 +1390,23 @@ body::before { content: none; }
 .file-actions button { min-height: 44px; padding: 0; border: 0; background: transparent; font-size: 11px; text-decoration: underline; text-underline-offset: 4px; }
 .inspector { position: static; max-height: none; overflow: visible; border-left: 1px solid var(--line); padding: 0 0 0 28px; display: block; }
 .inspector .rail-head { min-height: 32px; }
+.decision-assistant { margin: 8px 0 18px; padding: 14px 0 16px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.decision-heading { display: flex; justify-content: space-between; gap: 12px; align-items: start; }
+.decision-kicker { display: block; margin-bottom: 6px; color: var(--muted); font: 10px ui-monospace, monospace; text-transform: uppercase; letter-spacing: .04em; }
+.decision-heading h3 { margin: 0; font: 400 21px/1.2 Georgia, serif; letter-spacing: -.025em; }
+.decision-reset { padding: 2px 0; border: 0; background: transparent; color: var(--muted); font-size: 10px; text-decoration: underline; text-underline-offset: 3px; }
+.decision-reset:disabled { opacity: .4; cursor: default; }
+.decision-intro { margin: 8px 0 14px; color: var(--muted); font-size: 11px; line-height: 1.45; }
+.decision-question { padding: 10px 0; }
+.decision-question strong { display: block; margin-bottom: 8px; font-size: 11px; line-height: 1.4; }
+.decision-options { display: flex; flex-wrap: wrap; gap: 5px; }
+.decision-options button { min-height: 30px; padding: 0 10px; border: 1px solid #d1d1ca; border-radius: 6px; background: transparent; color: var(--ink); font-size: 11px; }
+.decision-options button:hover, .decision-options button.selected { border-color: var(--ink); background: var(--ink); color: #fff; }
+.decision-options button:focus-visible, .decision-reset:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+.decision-result { display: grid; gap: 5px; margin-top: 10px; padding: 11px 12px; border-left: 3px solid var(--ink); background: #efefeb; font-size: 11px; line-height: 1.45; }
+.decision-result span { color: var(--muted); }
+.decision-result.required { border-left-color: #8b2b1f; }
+.decision-result.optional { border-left-color: #76766e; }
 .inspector .rail-head h2 { font-size: 14px; font-weight: 600; }
 .inspector .tag-sample { min-height: 62px; margin: 14px 0; border-radius: 0; background: transparent; border-bottom: 1px solid var(--line); }
 .inspector .tag-sample { display: none; }
