@@ -1,7 +1,7 @@
 {
   "name": "@sabszh/syntag-local",
   "private": false,
-  "version": "0.3.1",
+  "version": "0.3.2",
   "type": "module",
   "description": "Local MCP server and API for privacy-preserving Syntag image disclosure tagging.",
   "bin": {
@@ -10,6 +10,7 @@
   "files": [
     "scripts/syntag-local.mjs",
     "src/lib/disclosure.js",
+    "src/lib/xmp.js",
     "public/eu-*.svg",
     "README.md"
   ],
