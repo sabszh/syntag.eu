@@ -1,5 +1,6 @@
 import React, { useEffect, useId, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
+import { zipSync } from "fflate";
 import "./styles.css";
 import {
   DEFAULTS as defaults,
@@ -10,7 +11,7 @@ import {
   validateFile,
 } from "./lib/disclosure.js";
 import { processFile, drawTag } from "./lib/processors.js";
-import { downloadResult } from "./lib/metadata.js";
+import { downloadBlob, downloadResult } from "./lib/metadata.js";
 import { installBrowserApi } from "./lib/api.js";
 
 const labels = Object.fromEntries(
@@ -25,6 +26,7 @@ function track(event, details = {}) {
 }
 const pages = [
   ["studio", "Studio"],
+  ["batch", "Batch"],
   ["guidance", "Guidance"],
   ["convention", "Convention"],
   ["developers", "Developers"],
@@ -124,6 +126,8 @@ function App() {
       <main key={route} className="route" tabIndex="-1" ref={mainRef}>
         {route === "studio" ? (
           <Studio />
+        ) : route === "batch" ? (
+          <Batch />
         ) : route === "guidance" ? (
           <Guidance />
         ) : route === "convention" ? (
@@ -176,7 +180,7 @@ function DecisionAssistant() {
   return (
     <section className="decision-assistant" aria-labelledby="decision-title">
       <div className="decision-heading">
-        <div><span className="decision-kicker">Before you export</span><h3 id="decision-title">Do I need to label this?</h3></div>
+        <div><h3 id="decision-title">Do I need to label this?</h3></div>
         <button className="decision-reset" type="button" onClick={reset} disabled={!Object.values(answers).some(Boolean)}>Reset</button>
       </div>
       <p className="decision-intro">A quick publishing check. It is guidance, not legal advice.</p>
@@ -200,7 +204,6 @@ function Guidance() {
       <div className="guidance-layout">
         <DecisionAssistant />
         <aside className="guidance-notes">
-          <span className="decision-kicker">How to use this</span>
           <h2>Make the call before you publish.</h2>
           <p>
             The questions look at how AI was used, what the content appears to
@@ -212,6 +215,107 @@ function Guidance() {
             useful context when the asset leaves Syntag and is reshared.
           </p>
           <a className="text-link" href="#/convention">See the disclosure levels <span>↗</span></a>
+        </aside>
+      </div>
+    </Page>
+  );
+}
+
+function Batch() {
+  const input = useRef(null);
+  const [files, setFiles] = useState([]);
+  const [opts, setOpts] = useState(defaults);
+  const [results, setResults] = useState([]);
+  const [processing, setProcessing] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [notice, setNotice] = useState("");
+
+  function addFiles(selected) {
+    const next = [...selected].filter((file) => {
+      try { validateFile(file); return true; }
+      catch (error) { setNotice(error.message); return false; }
+    });
+    setFiles((current) => {
+      const existing = new Set(current.map((file) => `${file.name}:${file.size}:${file.lastModified}`));
+      return [...current, ...next.filter((file) => !existing.has(`${file.name}:${file.size}:${file.lastModified}`))];
+    });
+    setResults([]);
+    if (next.length) setNotice(`${next.length} file${next.length === 1 ? "" : "s"} ready to process.`);
+  }
+
+  async function exportBatch() {
+    if (!files.length || processing) return;
+    setProcessing(true);
+    setProgress(0);
+    setResults([]);
+    const entries = {};
+    const usedNames = new Set();
+    const completed = [];
+    try {
+      for (let index = 0; index < files.length; index++) {
+        const file = files[index];
+        setNotice(`Processing ${index + 1} of ${files.length}: ${file.name}`);
+        const result = await processFile(file, opts, {
+          onProgress: (value) => setProgress((index + value) / files.length),
+        });
+        const base = `${result.source.name.replace(/\.[^.]+$/, "")}-syntag`;
+        let name = `${base}.${result.extension}`;
+        let suffix = 2;
+        while (usedNames.has(name)) name = `${base}-${suffix++}.${result.extension}`;
+        usedNames.add(name);
+        entries[name] = new Uint8Array(await result.blob.arrayBuffer());
+        if (result.sidecar) entries[`${name}.syntag.json`] = new Uint8Array(await result.sidecar.arrayBuffer());
+        completed.push({ name: file.name, output: name });
+        setResults([...completed]);
+      }
+      const archive = zipSync(entries, { level: 6 });
+      downloadBlob(new Blob([archive], { type: "application/zip" }), "syntag-batch.zip");
+      track("batch_export_completed", { count: files.length });
+      setNotice(`${files.length} file${files.length === 1 ? "" : "s"} exported as syntag-batch.zip`);
+    } catch (error) {
+      setNotice(error.message || "Batch export failed");
+    } finally {
+      setProcessing(false);
+      setProgress(0);
+    }
+  }
+
+  return (
+    <Page
+      title="Tag a whole folder."
+      intro="Process several assets in your browser and download one ZIP. The files stay on your device."
+    >
+      <div className="batch-layout">
+        <section className="batch-picker">
+          <input ref={input} hidden type="file" multiple accept="image/*,video/*,audio/*,.pdf"
+            onChange={(event) => { addFiles([...event.target.files]); event.target.value = ""; }} />
+          <button className="batch-drop" type="button" onClick={() => input.current?.click()}>
+            <Icon name="upload" />
+            <strong>{files.length ? "Add more files" : "Choose files"}</strong>
+            <span>Images, video, audio and PDF</span>
+          </button>
+          {files.length > 0 && <div className="batch-list" aria-live="polite">
+            {files.map((file, index) => <div className="batch-row" key={`${file.name}-${file.lastModified}`}>
+              <span>{String(index + 1).padStart(2, "0")}</span>
+              <strong>{file.name}</strong>
+              <small>{kindOf(file).toUpperCase()} · {formatBytes(file.size)}</small>
+              {results[index] && <em>Ready</em>}
+              {!processing && <button type="button" aria-label={`Remove ${file.name}`} onClick={() => { setFiles(files.filter((_, i) => i !== index)); setResults([]); }}>×</button>}
+            </div>)}
+          </div>}
+        </section>
+        <aside className="batch-settings">
+          <Head title="Batch settings" />
+          <Control label="Label"><div className="choices disclosure-buttons" role="group" aria-label="Batch disclosure label">
+            {Object.entries(LEVELS).map(([value, item]) => <button key={value} type="button" className={opts.level === value ? "selected" : ""} aria-pressed={opts.level === value} onClick={() => setOpts({ ...opts, level: value })}>{item.label.replace("AI ", "").toLowerCase()}</button>)}
+          </div></Control>
+          <Control label="Theme"><div className="choices" role="group" aria-label="Batch theme">
+            {["eu", "mono", "metal", "outline"].map((value) => <button key={value} type="button" className={opts.theme === value ? "selected" : ""} aria-pressed={opts.theme === value} onClick={() => setOpts({ ...opts, theme: value })}>{value}</button>)}
+          </div></Control>
+          <label className="sidecar batch-sidecar"><span><strong>Sidecar JSON</strong><small>Include a disclosure record for each file</small></span><input type="checkbox" checked={opts.sidecar} onChange={(event) => setOpts({ ...opts, sidecar: event.target.checked })} /><i /></label>
+          {progress > 0 && <progress className="export-progress" aria-label="Batch export progress" max="1" value={progress}>{Math.round(progress * 100)}%</progress>}
+          <button className="export" type="button" disabled={!files.length || processing} onClick={exportBatch}><Icon name="download" /><span>{processing ? "Processing…" : "Export ZIP"}</span></button>
+          <p className="batch-notice" role="status">{notice}</p>
         </aside>
       </div>
     </Page>
@@ -830,7 +934,6 @@ function Trust() {
       </section>
       <section className="content-methods">
         <div className="content-methods-intro">
-          <span className="eyebrow">How it works</span>
           <h2>One disclosure model, adapted to each format.</h2>
         </div>
         <div className="content-methods-grid">
@@ -866,7 +969,6 @@ function Contact() {
     >
       <section className="contact-panel">
         <div>
-          <span className="eyebrow">Get in touch</span>
           <h2>Syntag is built in the open.</h2>
         </div>
         <div className="contact-copy">
