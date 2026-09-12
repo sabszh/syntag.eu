@@ -3,6 +3,12 @@
 React/Vite app for adding AI disclosures to media. Processing happens in the
 browser; no backend, database, API keys, or persistent container volumes are required.
 
+## License
+
+Syntag is free software licensed under the GNU General Public License version 3
+or any later version (`GPL-3.0-or-later`). See [LICENSE](LICENSE) for the
+license notice and the [official license text](https://www.gnu.org/licenses/gpl-3.0.html).
+
 ## Local development
 
 Use Node.js 24 or newer:
@@ -64,11 +70,11 @@ npx @sabszh/syntag-local tag ./image.png
 The package is intended for local use. It does not upload files, require a
 Syntag account, or contact `syntag.eu`.
 
-Studio and Batch include a label-language setting for English, Danish, German,
+Studio includes a label-language setting for English, Danish, German,
 French, Spanish, Italian, Dutch, and Polish. It changes text-based disclosure
 labels and the corresponding metadata; the EU icon remains language-neutral.
-Batch processing creates one ZIP locally and can include a JSON sidecar for
-each asset.
+When a ZIP is selected in Studio, it is processed locally and returned as one
+ZIP with a JSON sidecar for every asset.
 
 Verify can also read an existing C2PA Content Credential in the browser using
 the official `c2pa-web` reader. Syntag does not create a fake unsigned

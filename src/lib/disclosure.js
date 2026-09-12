@@ -2,7 +2,7 @@ import { LANGUAGES } from "./locales.js";
 
 export const LEVELS = {
   involved: {
-    label: "AI INVOLVED",
+    label: "AI",
     eu: "basic",
     description: "Use when AI contributed to the asset.",
   },
@@ -51,7 +51,7 @@ export function normalizeOptions(input = {}) {
     o.theme === "eu" ? 0.5 : 0.35,
     Math.min(1, Number(o.opacity) || 1),
   );
-  o.sidecar = o.sidecar !== false;
+  o.sidecar = true;
   o.embedMetadata = o.embedMetadata !== false;
   o.audioTone = o.audioTone !== false;
   if (!LANGUAGES[o.language]) o.language = DEFAULTS.language;
@@ -73,6 +73,12 @@ export function formatBytes(n) {
 }
 
 export function kindOf(file) {
+  if (
+    file.type === "application/zip" ||
+    file.type === "application/x-zip-compressed" ||
+    file.name.toLowerCase().endsWith(".zip")
+  )
+    return "zip";
   if (file.type.startsWith("image/")) return "image";
   if (file.type.startsWith("video/")) return "video";
   if (file.type.startsWith("audio/")) return "audio";
@@ -85,6 +91,7 @@ export function kindOf(file) {
 }
 
 const LIMITS = {
+  zip: 300 * 1024 ** 2,
   image: 80 * 1024 ** 2,
   video: 300 * 1024 ** 2,
   audio: 100 * 1024 ** 2,
@@ -94,7 +101,7 @@ export function validateFile(file) {
   const kind = kindOf(file);
   if (!kind)
     throw new Error(
-      "Unsupported file type. Choose an image, video, audio, or PDF.",
+      "Unsupported file type. Choose an image, video, audio, PDF, or ZIP.",
     );
   if (file.size > LIMITS[kind])
     throw new Error(

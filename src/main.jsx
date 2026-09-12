@@ -1,6 +1,6 @@
 import React, { useEffect, useId, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { zipSync } from "fflate";
+import { unzipSync, zipSync } from "fflate";
 import "./styles.css";
 import {
   DEFAULTS as defaults,
@@ -16,10 +16,28 @@ import { installBrowserApi } from "./lib/api.js";
 import { LANGUAGES, getLabel } from "./lib/locales.js";
 import { inspectAsset } from "./lib/verification.js";
 
-const labels = Object.fromEntries(
-  Object.entries(LEVELS).map(([key, value]) => [key, value.label]),
-);
 let activeStudioFile = null;
+const mimeForName = (name) => {
+  const ext = name.toLowerCase().split(".").pop();
+  return {
+    png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", webp: "image/webp",
+    gif: "image/gif", avif: "image/avif", mp4: "video/mp4", webm: "video/webm",
+    mov: "video/quicktime", mp3: "audio/mpeg", wav: "audio/wav", ogg: "audio/ogg",
+    m4a: "audio/mp4", pdf: "application/pdf",
+  }[ext] || "application/octet-stream";
+};
+async function filesFromZip(file) {
+  const archive = unzipSync(new Uint8Array(await file.arrayBuffer()));
+  const files = [];
+  for (const [name, bytes] of Object.entries(archive)) {
+    if (name.endsWith("/") || name.split("/").some((part) => part.startsWith("."))) continue;
+    const cleanName = name.split("/").pop();
+    const candidate = new File([bytes], cleanName, { type: mimeForName(cleanName) });
+    try { validateFile(candidate); files.push(candidate); } catch { /* Ignore unsupported archive entries. */ }
+  }
+  if (!files.length) throw new Error("This ZIP contains no supported image, video, audio, or PDF files.");
+  return files;
+}
 function track(event, details = {}) {
   if (navigator.doNotTrack === "1") return;
   const payload = JSON.stringify({ event, route: location.hash.replace("#/", "") || "studio", ...details });
@@ -28,14 +46,17 @@ function track(event, details = {}) {
 }
 const pages = [
   ["studio", "Studio"],
-  ["batch", "Batch"],
   ["verify", "Verify"],
   ["guidance", "Guidance"],
-  ["convention", "Convention"],
   ["developers", "Developers"],
   ["trust", "Trust"],
   ["contact", "Contact"],
 ];
+function contrastOptions(theme) {
+  if (theme === "mono") return [["auto", "Automatic"], ["white", "White"], ["white-50", "White 50%"]];
+  if (theme === "metal" || theme === "outline") return [["auto", "Automatic"], ["black", "Black"], ["black-50", "Black 50%"]];
+  return [["auto", "Automatic"], ["black", "Black"], ["white", "White"], ["black-50", "Black 50%"], ["white-50", "White 50%"]];
+}
 
 function Logo({ size = 32 }) {
   return (
@@ -76,13 +97,14 @@ function FormatIcon({ type }) {
     video: "M4 6h11v12H4zM15 10l5-3v10l-5-3z",
     audio: "M6 10v4M10 7v10M14 4v16M18 9v6",
     pdf: "M6 3h8l4 4v14H6zM14 3v5h5M9 13h6M9 16h6",
+    zip: "M5 4h14v16H5zM8 8h8M8 12h8M8 16h5",
   };
   return <svg className="format-icon" viewBox="0 0 24 24" aria-hidden="true"><path d={paths[type]} /></svg>;
 }
 
 function App() {
   const routeFromHash = () => {
-    const value = location.hash.replace("#/", "");
+    const value = decodeURIComponent(location.hash.replace(/^#\//, "")).split("#")[0];
     return pages.some(([id]) => id === value) ? value : "studio";
   };
   const [route, setRoute] = useState(routeFromHash());
@@ -129,14 +151,10 @@ function App() {
       <main key={route} className="route" tabIndex="-1" ref={mainRef}>
         {route === "studio" ? (
           <Studio />
-        ) : route === "batch" ? (
-          <Batch />
         ) : route === "verify" ? (
           <Verification />
         ) : route === "guidance" ? (
           <Guidance />
-        ) : route === "convention" ? (
-          <Convention />
         ) : route === "developers" ? (
           <Developers />
         ) : route === "contact" ? (
@@ -185,7 +203,7 @@ function DecisionAssistant() {
   return (
     <section className="decision-assistant" aria-labelledby="decision-title">
       <div className="decision-heading">
-        <div><h3 id="decision-title">Do I need to label this?</h3></div>
+        <div><h3 id="decision-title">Answer four quick questions.</h3></div>
         <button className="decision-reset" type="button" onClick={reset} disabled={!Object.values(answers).some(Boolean)}>Reset</button>
       </div>
       <p className="decision-intro">A quick publishing check. It is guidance, not legal advice.</p>
@@ -209,7 +227,7 @@ function Guidance() {
       <div className="guidance-layout">
         <DecisionAssistant />
         <aside className="guidance-notes">
-          <h2>Make the call before you publish.</h2>
+          <h2>Use the result as a starting point.</h2>
           <p>
             The questions look at how AI was used, what the content appears to
             show, and where it will be published. They are deliberately quick:
@@ -219,115 +237,22 @@ function Guidance() {
             If you are unsure, keep the disclosure. A clear label gives people
             useful context when the asset leaves Syntag and is reshared.
           </p>
-          <a className="text-link" href="#/convention">See the disclosure levels <span>↗</span></a>
         </aside>
       </div>
-    </Page>
-  );
-}
-
-function Batch() {
-  const input = useRef(null);
-  const [files, setFiles] = useState([]);
-  const [opts, setOpts] = useState(defaults);
-  const [results, setResults] = useState([]);
-  const [processing, setProcessing] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [notice, setNotice] = useState("");
-
-  function addFiles(selected) {
-    const next = [...selected].filter((file) => {
-      try { validateFile(file); return true; }
-      catch (error) { setNotice(error.message); return false; }
-    });
-    setFiles((current) => {
-      const existing = new Set(current.map((file) => `${file.name}:${file.size}:${file.lastModified}`));
-      return [...current, ...next.filter((file) => !existing.has(`${file.name}:${file.size}:${file.lastModified}`))];
-    });
-    setResults([]);
-    if (next.length) setNotice(`${next.length} file${next.length === 1 ? "" : "s"} ready to process.`);
-  }
-
-  async function exportBatch() {
-    if (!files.length || processing) return;
-    setProcessing(true);
-    setProgress(0);
-    setResults([]);
-    const entries = {};
-    const usedNames = new Set();
-    const completed = [];
-    try {
-      for (let index = 0; index < files.length; index++) {
-        const file = files[index];
-        setNotice(`Processing ${index + 1} of ${files.length}: ${file.name}`);
-        const result = await processFile(file, opts, {
-          onProgress: (value) => setProgress((index + value) / files.length),
-        });
-        const base = `${result.source.name.replace(/\.[^.]+$/, "")}-syntag`;
-        let name = `${base}.${result.extension}`;
-        let suffix = 2;
-        while (usedNames.has(name)) name = `${base}-${suffix++}.${result.extension}`;
-        usedNames.add(name);
-        entries[name] = new Uint8Array(await result.blob.arrayBuffer());
-        if (result.sidecar) entries[`${name}.syntag.json`] = new Uint8Array(await result.sidecar.arrayBuffer());
-        completed.push({ name: file.name, output: name });
-        setResults([...completed]);
-      }
-      const archive = zipSync(entries, { level: 6 });
-      downloadBlob(new Blob([archive], { type: "application/zip" }), "syntag-batch.zip");
-      track("batch_export_completed", { count: files.length });
-      setNotice(`${files.length} file${files.length === 1 ? "" : "s"} exported as syntag-batch.zip`);
-    } catch (error) {
-      setNotice(error.message || "Batch export failed");
-    } finally {
-      setProcessing(false);
-      setProgress(0);
-    }
-  }
-
-  return (
-    <Page
-      title="Tag a whole folder."
-      intro="Process several assets in your browser and download one ZIP. The files stay on your device."
-    >
-      <div className="batch-layout">
-        <section className="batch-picker">
-          <input ref={input} hidden type="file" multiple accept="image/*,video/*,audio/*,.pdf"
-            onChange={(event) => { addFiles([...event.target.files]); event.target.value = ""; }} />
-          <button className="batch-drop" type="button" onClick={() => input.current?.click()}>
-            <Icon name="upload" />
-            <strong>{files.length ? "Add more files" : "Choose files"}</strong>
-            <span>Images, video, audio and PDF</span>
-          </button>
-          {files.length > 0 && <div className="batch-list" aria-live="polite">
-            {files.map((file, index) => <div className="batch-row" key={`${file.name}-${file.lastModified}`}>
-              <span>{String(index + 1).padStart(2, "0")}</span>
-              <strong>{file.name}</strong>
-              <small>{kindOf(file).toUpperCase()} · {formatBytes(file.size)}</small>
-              {results[index] && <em>Ready</em>}
-              {!processing && <button type="button" aria-label={`Remove ${file.name}`} onClick={() => { setFiles(files.filter((_, i) => i !== index)); setResults([]); }}>×</button>}
-            </div>)}
-          </div>}
-        </section>
-        <aside className="batch-settings">
-          <Head title="Batch settings" />
-          <Control label="Label"><div className="choices disclosure-buttons" role="group" aria-label="Batch disclosure label">
-            {Object.entries(LEVELS).map(([value, item]) => <button key={value} type="button" className={opts.level === value ? "selected" : ""} aria-pressed={opts.level === value} onClick={() => setOpts({ ...opts, level: value })}>{item.label.replace("AI ", "").toLowerCase()}</button>)}
-          </div></Control>
-          <Control label="Theme"><div className="choices" role="group" aria-label="Batch theme">
-            {["eu", "mono", "metal", "outline"].map((value) => <button key={value} type="button" className={opts.theme === value ? "selected" : ""} aria-pressed={opts.theme === value} onClick={() => setOpts({ ...opts, theme: value })}>{value}</button>)}
-          </div></Control>
-          <Control label="Label language">
-            <select value={opts.language} onChange={(event) => setOpts({ ...opts, language: event.target.value })}>
-              {Object.entries(LANGUAGES).map(([value, language]) => <option key={value} value={value}>{language.name}</option>)}
-            </select>
-          </Control>
-          <label className="sidecar batch-sidecar"><span><strong>Sidecar JSON</strong><small>Include a disclosure record for each file</small></span><input type="checkbox" checked={opts.sidecar} onChange={(event) => setOpts({ ...opts, sidecar: event.target.checked })} /><i /></label>
-          {progress > 0 && <progress className="export-progress" aria-label="Batch export progress" max="1" value={progress}>{Math.round(progress * 100)}%</progress>}
-          <button className="export" type="button" disabled={!files.length || processing} onClick={exportBatch}><Icon name="download" /><span>{processing ? "Processing…" : "Export ZIP"}</span></button>
-          <p className="batch-notice" role="status">{notice}</p>
-        </aside>
-      </div>
+      <section className="guidance-levels" id="levels" aria-labelledby="levels-title">
+        <div className="guidance-levels-heading">
+          <h2 id="levels-title">Choose the label that matches the work.</h2>
+        </div>
+        <div className="cards">
+          {Object.keys(LEVELS).map((k, i) => (
+            <article key={k}>
+              <span>0{i + 1}</span>
+              <Tag opts={{ ...defaults, level: k, theme: "mono", position: "sample", size: "medium" }} />
+              <p>{LEVELS[k].description}</p>
+            </article>
+          ))}
+        </div>
+      </section>
     </Page>
   );
 }
@@ -394,12 +319,21 @@ function Studio() {
   const [controller, setController] = useState(null);
   const [dragging, setDragging] = useState(false);
   const [videoReady, setVideoReady] = useState(false);
+  const [zipFiles, setZipFiles] = useState([]);
   useEffect(() => () => url && URL.revokeObjectURL(url), [url]);
   const kind = useMemo(() => (file ? kindOf(file) : ""), [file]);
   async function choose(f) {
     if (!f) return;
+    let archiveCount = 0;
     try {
-      validateFile(f);
+      const selectedKind = validateFile(f);
+      if (selectedKind === "zip") {
+        const extracted = await filesFromZip(f);
+        setZipFiles(extracted);
+        archiveCount = extracted.length;
+      } else {
+        setZipFiles([]);
+      }
     } catch (error) {
       setNotice({ text: error.message, tone: "error" });
       return;
@@ -409,12 +343,12 @@ function Studio() {
     activeStudioFile = f;
     track("file_selected", { kind: kindOf(f) });
     setVideoReady(false);
-    setUrl(URL.createObjectURL(f));
-    setNotice({ text: "Ready to export", tone: "ready" });
+    setUrl(kindOf(f) === "zip" ? "" : URL.createObjectURL(f));
+    setNotice({ text: kindOf(f) === "zip" ? `${archiveCount} files ready for batch export` : "Ready to export", tone: "ready" });
   }
   function update(k, v) {
     setVideoReady(true);
-    setOpts((o) => ({ ...o, [k]: v }));
+    setOpts((o) => ({ ...o, [k]: v, ...(k === "theme" && v !== "eu" ? { euVariant: "auto" } : {}) }));
   }
   async function exportAsset() {
     if (!file || exporting) return;
@@ -424,6 +358,30 @@ function Studio() {
     setProgress(0.01);
     setNotice({ text: "Preparing export", tone: "working" });
     try {
+      if (kind === "zip") {
+        const entries = {};
+        const usedNames = new Set();
+        for (let index = 0; index < zipFiles.length; index++) {
+          const result = await processFile(zipFiles[index], opts, {
+            signal: abortController.signal,
+            onProgress: (value, message) => {
+              setProgress((index + value) / zipFiles.length);
+              message && setNotice({ text: `${index + 1} of ${zipFiles.length}: ${message}`, tone: "working" });
+            },
+          });
+          const base = `${zipFiles[index].name.replace(/\.[^.]+$/, "")}-syntag`;
+          let name = `${base}.${result.extension}`;
+          let suffix = 2;
+          while (usedNames.has(name)) name = `${base}-${suffix++}.${result.extension}`;
+          usedNames.add(name);
+          entries[name] = new Uint8Array(await result.blob.arrayBuffer());
+          if (result.sidecar) entries[`${name}.syntag.json`] = new Uint8Array(await result.sidecar.arrayBuffer());
+        }
+        downloadBlob(new Blob([zipSync(entries, { level: 6 })], { type: "application/zip" }), `${file.name.replace(/\.zip$/i, "")}-syntag.zip`);
+        track("batch_export_completed", { count: zipFiles.length, source: "studio_zip" });
+        setNotice({ text: `${zipFiles.length} files exported`, tone: "success" });
+        return;
+      }
       const result = await processFile(file, opts, {
         signal: abortController.signal,
         onProgress: (value, message) => {
@@ -460,7 +418,7 @@ function Studio() {
       </div>
       <div className="workbench">
         <section className="canvas-wrap">
-          <input ref={input} hidden type="file" accept="image/*,video/*,audio/*,.pdf"
+          <input ref={input} hidden type="file" accept="image/*,video/*,audio/*,.pdf,.zip,application/zip"
             onChange={(e) => { choose(e.target.files[0]); e.target.value = ""; }} />
           <div className={`canvas ${kind || ""} ${file ? "has-file" : ""} ${dragging ? "is-dragging" : ""}`}
             onDragEnter={(e) => { e.preventDefault(); setDragging(true); }}
@@ -472,20 +430,20 @@ function Studio() {
                 <span className="upload-icon"><Icon name="upload" /></span>
                 <h3>A little transparency starts here.</h3>
                 <p><span className="upload-desktop-hint">Drop your file here, or </span><span>browse files</span></p>
-                <small className="file-types">Image · Video · Audio · PDF</small>
+                <small className="file-types">Image · Video · Audio · PDF · ZIP</small>
               </button>
             )}
-            {file && <Preview file={file} url={url} opts={opts} videoReady={videoReady} />}
+            {file && (kind === "zip" ? <div className="zip-preview"><Icon name="download" /><strong>{zipFiles.length} files ready</strong><span>Studio will process the ZIP locally and return a new ZIP.</span></div> : <Preview file={file} url={url} opts={opts} videoReady={videoReady} />)}
           </div>
           <div className="preview-caption">
             <div>
               <strong>{file ? file.name : "Your file stays yours."}</strong>
-              <small>{file ? `${kind.toUpperCase()} · ${formatBytes(file.size)}` : "Private. Local. In your browser."}</small>
+            <small>{file ? `${kind.toUpperCase()} · ${formatBytes(file.size)}${kind === "zip" ? ` · ${zipFiles.length} files` : ""}` : "Private. Local. In your browser."}</small>
             </div>
             {file && <div className="file-actions">
               <button disabled={exporting} onClick={() => input.current?.click()}>Replace file</button>
               <button disabled={exporting} onClick={() => {
-                setFile(null); activeStudioFile = null; setUrl(""); setVideoReady(false); setNotice({ text: "", tone: "idle" });
+                setFile(null); activeStudioFile = null; setZipFiles([]); setUrl(""); setVideoReady(false); setNotice({ text: "", tone: "idle" });
               }}>Remove</button>
             </div>}
           </div>
@@ -505,10 +463,10 @@ function Studio() {
           />
           <Control label="Label">
             <div className="choices disclosure-buttons" role="group" aria-label="Disclosure label">
-              {Object.entries(LEVELS).map(([value, item]) => (
+              {Object.entries(LEVELS).map(([value]) => (
                 <button key={value} aria-pressed={opts.level === value}
                   className={opts.level === value ? "selected" : ""}
-                  onClick={() => { update("level", value); track("label_selected", { kind: value }); }}>{item.label.replace("AI ", "").toLowerCase()}</button>
+                  onClick={() => { update("level", value); track("label_selected", { kind: value }); }}>{value === "involved" ? "AI" : `AI ${value}`}</button>
               ))}
             </div>
             <p className="label-help">{LEVELS[opts.level].description}</p>
@@ -557,20 +515,14 @@ function Studio() {
             </div>
           </Control>
           <div className="advanced visible-settings">
-            {opts.theme === "eu" && (
-              <Control label="EU contrast">
-                <select
-                  value={opts.euVariant}
-                  onChange={(e) => update("euVariant", e.target.value)}
-                >
-                  <option value="auto">Automatic</option>
-                  <option value="black">Black</option>
-                  <option value="white">White</option>
-                  <option value="black-50">Black 50%</option>
-                  <option value="white-50">White 50%</option>
-                </select>
-              </Control>
-            )}
+            <Control label="Contrast">
+              <select
+                value={opts.euVariant}
+                onChange={(e) => update("euVariant", e.target.value)}
+              >
+                {contrastOptions(opts.theme).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+              </select>
+            </Control>
             <Control label="Position">
               <div className="position-grid">
                 {[
@@ -787,7 +739,6 @@ function Tag({ opts }) {
       className={`tag ${opts.theme} ${opts.size} ${opts.position}`}
       style={{ opacity: opts.opacity }}
     >
-      <span className="tag-mark" aria-hidden="true" />
       <b>{getLabel(opts.level, opts.language)}</b>
     </div>
   );
@@ -802,53 +753,6 @@ function Control({ label, children }) {
         ? React.cloneElement(children, { id })
         : children}
     </div>
-  );
-}
-function Convention() {
-  return (
-    <Page
-      title="Disclosure levels"
-      intro="Syntag uses three labels: AI involved, AI generated, and AI modified."
-    >
-      <div className="cards">
-        {Object.keys(labels).map((k, i) => (
-          <article key={k}>
-            <span>0{i + 1}</span>
-            <Tag
-              opts={{
-                ...defaults,
-                level: k,
-                theme: "mono",
-                position: "sample",
-                size: "medium",
-              }}
-            />
-            <p>
-              {k === "involved"
-                ? "Use when AI contributed to the asset."
-                : k === "generated"
-                  ? "Use when AI generated the entire asset."
-                  : "Use when AI materially changed existing human-made content."}
-            </p>
-          </article>
-        ))}
-      </div>
-      <section className="eu-callout">
-        <h2>EU icon mapping</h2>
-        <p>
-          The EU set is a shared visual language for content that has been
-          generated or manipulated with AI. Syntag maps its three labels to the
-          official icons so a disclosure remains recognisable after an asset is
-          downloaded or reshared. The icons are optional and do not by
-          themselves prove legal compliance.
-        </p>
-      </section>
-      <div className="mapping-notes">
-        <div><strong>AI involved</strong><span>Basic icon for work where AI contributed.</span></div>
-        <div><strong>AI generated</strong><span>Fully generated icon for content made entirely by AI.</span></div>
-        <div><strong>AI modified</strong><span>Partially modified icon for human content changed with AI.</span></div>
-      </div>
-    </Page>
   );
 }
 function Developers() {
@@ -870,11 +774,11 @@ function Developers() {
       <div className="code-grid">
         <Code
           title="Browser API"
-          code={`const result = await Syntag.process(file, {\n  level: "generated",\n  theme: "eu",\n  euVariant: "auto",\n  position: "bottom-right",\n  size: "medium",\n  opacity: 1,\n  sidecar: true,\n  audioTone: true\n});`}
+          code={`const result = await Syntag.process(file, {\n  level: "generated",\n  theme: "eu",\n  euVariant: "auto",\n  position: "bottom-right",\n  size: "medium",\n  opacity: 1,\n  audioTone: true\n});`}
         />
         <Code
           title="MCP tool"
-          code={`{\n  "name": "syntag_tag_asset",\n  "arguments": {\n    "settings": {\n      "level": "generated",\n      "theme": "eu",\n      "euVariant": "auto",\n      "position": "bottom-right",\n      "size": "medium",\n      "opacity": 1,\n      "sidecar": true\n    }\n  }\n}`}
+          code={`{\n  "name": "syntag_tag_asset",\n  "arguments": {\n    "settings": {\n      "level": "generated",\n      "theme": "eu",\n      "euVariant": "auto",\n      "position": "bottom-right",\n      "size": "medium",\n      "opacity": 1\n    }\n  }\n}`}
         />
       </div>
       <div className="code-grid local-integration-grid">
@@ -979,8 +883,8 @@ function Trust() {
           <h3>JSON sidecar</h3>
           <p>
             The JSON sidecar contains the source hash, disclosure settings, and
-            timestamp. It is generated as a local download alongside the marked
-            asset; the image bytes never pass through a Syntag server.
+            timestamp. It is always generated as a local download alongside the
+            marked asset; the image bytes never pass through a Syntag server.
           </p>
         </article>
         <article>
@@ -1001,8 +905,8 @@ function Trust() {
         <p>
           When MCP is used, a connected tool sends settings to the browser
           bridge. The browser reads the selected file, adds the disclosure, and
-          returns export metadata. When JSON sidecar is enabled, only metadata
-          is written to the sidecar download. The source image is never stored
+          returns export metadata. A JSON sidecar is always included with the
+          export; only metadata is written to it. The source image is never stored
           on a Syntag server.
         </p>
       </section>
@@ -1015,6 +919,7 @@ function Trust() {
           <article><div className="method-visual"><FormatIcon type="video" /></div><h3>Video</h3><p>Frames are processed in the browser and recorded into a new video file with the disclosure visible throughout playback.</p></article>
           <article><div className="method-visual"><FormatIcon type="audio" /></div><h3>Audio</h3><p>Audio has no visual surface, so the exported WAV carries the disclosure in its metadata. Studio shows the selected label beside the player.</p></article>
           <article><div className="method-visual"><FormatIcon type="pdf" /></div><h3>PDFs</h3><p>The disclosure is drawn onto every page using the page’s own dimensions. The result is a new PDF with the source content and mark together.</p></article>
+          <article><div className="method-visual"><FormatIcon type="zip" /></div><h3>ZIP files</h3><p>Drop a ZIP into Studio to process its supported images, video, audio, and PDFs locally. The result is one ZIP with a sidecar JSON file for every asset.</p></article>
         </div>
       </section>
       <section className="privacy-context usage-disclosure">

@@ -109,42 +109,39 @@ export async function drawTag(ctx, w, h, input = {}) {
     return { x, y, width: tw, height: th, variant };
   }
   const text = getLabel(o.level, o.language),
-    pad = fs * 0.65,
-    gap = fs * 0.35,
-    iw = fs * 0.95;
-  ctx.font = `700 ${fs}px Arial`;
-  const tw = ctx.measureText(text).width + pad * 2 + iw + gap,
-    th = fs + pad,
+    labelFs = fs * (o.level === "involved" ? 0.95 : 0.78),
+    pad = labelFs * 0.65;
+  ctx.font = `650 ${labelFs}px Arial`;
+  const tw = ctx.measureText(text).width + pad * 2,
+    th = labelFs + pad,
     [x, y] = positionFor(w, h, tw, th, o);
   ctx.save();
-  ctx.globalAlpha = o.opacity;
-  if (o.theme === "metal") {
+  const explicitContrast = o.euVariant !== "auto";
+  const lightSurface = o.euVariant.startsWith("white");
+  ctx.globalAlpha = o.opacity * (o.euVariant.endsWith("-50") ? 0.5 : 1);
+  if (explicitContrast) {
+    ctx.fillStyle = lightSurface ? "#fff" : "#000";
+  } else if (o.theme === "metal") {
     const g = ctx.createLinearGradient(x, y, x + tw, y + th);
     g.addColorStop(0, "#fff");
-    g.addColorStop(0.28, "#777");
-    g.addColorStop(0.52, "#fff");
-    g.addColorStop(0.78, "#555");
+    g.addColorStop(0.24, "#c7c7c3");
+    g.addColorStop(0.48, "#fff");
+    g.addColorStop(0.74, "#b8b8b4");
     g.addColorStop(1, "#eee");
     ctx.fillStyle = g;
   } else
     ctx.fillStyle = o.theme === "outline" ? "rgba(255,255,255,.88)" : "#000";
-  ctx.strokeStyle = o.theme === "outline" ? "#000" : "transparent";
-  ctx.lineWidth = Math.max(1, fs * 0.055);
+  ctx.strokeStyle = explicitContrast ? (lightSurface ? "#000" : "#fff") : o.theme === "outline" ? "#000" : o.theme === "metal" ? "rgba(0,0,0,.62)" : "transparent";
+  ctx.lineWidth = o.theme === "outline" ? Math.max(1.5, labelFs * 0.055) : Math.max(1, labelFs * 0.045);
   ctx.beginPath();
-  ctx.roundRect(x, y, tw, th, th / 2);
+  ctx.rect(x, y, tw, th);
   ctx.fill();
   ctx.stroke();
   ctx.fillStyle =
-    o.theme === "outline" || o.theme === "metal" ? "#000" : "#fff";
+    explicitContrast ? (lightSurface ? "#000" : "#fff") : o.theme === "outline" || o.theme === "metal" ? "#000" : "#fff";
   ctx.textBaseline = "middle";
-  ctx.strokeStyle = ctx.fillStyle;
-  ctx.strokeRect(x + pad * 0.65, y + (th - iw) / 2, iw, iw);
-  ctx.font = `800 ${fs * 0.43}px Arial`;
-  ctx.textAlign = "center";
-  ctx.fillText("AI", x + pad * 0.65 + iw / 2, y + th / 2);
-  ctx.font = `700 ${fs}px Arial`;
   ctx.textAlign = "left";
-  ctx.fillText(text, x + pad * 0.65 + iw + gap, y + th / 2);
+  ctx.fillText(text, x + pad, y + th / 2);
   ctx.restore();
   return { x, y, width: tw, height: th };
 }
@@ -289,44 +286,36 @@ async function processPdf(file, o, { signal, onProgress }) {
       });
     } else {
       const text = getLabel(o.level, o.language),
-        pad = fs * 0.65,
-        gap = fs * 0.35,
-        iw = fs * 0.95,
-        tw = font.widthOfTextAtSize(text, fs) + pad * 2 + iw + gap,
-        th = fs + pad,
+        labelFs = fs * (o.level === "involved" ? 0.95 : 0.78),
+        pad = labelFs * 0.65,
+        tw = font.widthOfTextAtSize(text, labelFs) + pad * 2,
+        th = labelFs + pad,
         [x, top] = positionFor(width, height, tw, th, o),
         y = height - top - th,
         black = rgb(0, 0, 0),
         white = rgb(1, 1, 1),
         light = rgb(0.92, 0.92, 0.92),
-        bg =
-          o.theme === "outline" ? white : o.theme === "metal" ? light : black,
-        fg = o.theme === "outline" || o.theme === "metal" ? black : white;
+        lightSurface = o.euVariant.startsWith("white"),
+        explicitContrast = o.euVariant !== "auto",
+        bg = explicitContrast ? (lightSurface ? white : black) : o.theme === "outline" ? white : o.theme === "metal" ? light : black,
+        fg = explicitContrast ? (lightSurface ? black : white) : o.theme === "outline" || o.theme === "metal" ? black : white;
       page.drawRectangle({
         x,
         y,
         width: tw,
         height: th,
         color: bg,
-        borderColor: o.theme === "outline" ? black : undefined,
-        borderWidth: o.theme === "outline" ? 1 : 0,
-        opacity: o.opacity,
-      });
-      page.drawText("AI", {
-        x: x + pad * 0.7,
-        y: y + th / 2 - fs * 0.17,
-        size: fs * 0.43,
-        font,
-        color: fg,
-        opacity: o.opacity,
+        borderColor: explicitContrast || o.theme === "outline" || o.theme === "metal" ? black : undefined,
+        borderWidth: o.theme === "outline" ? 1 : o.theme === "metal" ? 0.7 : 0,
+        opacity: o.opacity * (o.euVariant.endsWith("-50") ? 0.5 : 1),
       });
       page.drawText(text, {
-        x: x + pad * 0.7 + iw + gap,
-        y: y + th / 2 - fs * 0.34,
-        size: fs,
+        x: x + pad,
+        y: y + th / 2 - labelFs * 0.34,
+        size: labelFs,
         font,
         color: fg,
-        opacity: o.opacity,
+        opacity: o.opacity * (o.euVariant.endsWith("-50") ? 0.5 : 1),
       });
     }
     onProgress(

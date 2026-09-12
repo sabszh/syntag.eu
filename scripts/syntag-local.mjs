@@ -104,13 +104,17 @@ function textOverlay(width, height, options) {
   const label = getLabel(options.level, options.language);
   const fontSize = Math.max(13, Math.min(width, height) * ({ small: 0.022, medium: 0.034, large: 0.05 }[options.size] || 0.034));
   const pad = fontSize * 0.65;
-  const badgeWidth = Math.max(fontSize * 7, fontSize * (label.length * 0.56 + 3.5));
+  const badgeWidth = Math.max(fontSize * 6.4, fontSize * (label.length * 0.56 + 1.9));
   const badgeHeight = fontSize + pad;
   const [x, y] = positionFor(width, height, badgeWidth, badgeHeight, options.position);
   const outline = options.theme === "outline";
-  const fill = options.theme === "metal" ? "#d8d8d8" : outline ? "#ffffff" : "#000000";
-  const foreground = outline || options.theme === "metal" ? "#000000" : "#ffffff";
-  return Buffer.from(`<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg"><g opacity="${options.opacity}"><rect x="${x}" y="${y}" width="${badgeWidth}" height="${badgeHeight}" rx="${badgeHeight / 2}" fill="${fill}" ${outline ? 'stroke="#000" stroke-width="2"' : ""}/><circle cx="${x + pad * 0.65 + fontSize * 0.42}" cy="${y + badgeHeight / 2}" r="${fontSize * 0.27}" fill="${foreground}"/><text x="${x + pad * 0.65 + fontSize * 0.95 + fontSize * 0.35}" y="${y + badgeHeight / 2 + fontSize * 0.34}" font-family="Arial" font-size="${fontSize}" font-weight="700" fill="${foreground}">${escapeXml(label)}</text></g></svg>`);
+  const explicitContrast = options.euVariant !== "auto";
+  const lightSurface = options.euVariant.startsWith("white");
+  const fill = explicitContrast ? (lightSurface ? "#ffffff" : "#000000") : options.theme === "metal" ? "#d8d8d8" : outline ? "#ffffff" : "#000000";
+  const foreground = explicitContrast ? (lightSurface ? "#000000" : "#ffffff") : outline || options.theme === "metal" ? "#000000" : "#ffffff";
+  const radius = 0;
+  const stroke = explicitContrast ? `stroke="${foreground}" stroke-width="1.5"` : outline ? 'stroke="#000" stroke-width="1.5"' : options.theme === "metal" ? 'stroke="#000" stroke-opacity=".62" stroke-width="1"' : "";
+  return Buffer.from(`<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg"><g opacity="${options.opacity * (options.euVariant.endsWith("-50") ? 0.5 : 1)}"><rect x="${x}" y="${y}" width="${badgeWidth}" height="${badgeHeight}" rx="${radius}" fill="${fill}" ${stroke}/><text x="${x + pad}" y="${y + badgeHeight / 2 + fontSize * 0.34}" font-family="Arial" font-size="${fontSize}" font-weight="650" letter-spacing="${fontSize * 0.055}px" fill="${foreground}">${escapeXml(label)}</text></g></svg>`);
 }
 
 async function euOverlay(width, height, options) {
