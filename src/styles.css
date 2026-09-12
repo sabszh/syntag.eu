@@ -1090,6 +1090,12 @@ input[type="range"] {
   padding-top: 32px;
   border-top: 1px solid var(--line);
 }
+.integration-recipes { margin-top: 76px; padding-top: 34px; border-top: 1px solid var(--line); }
+.integration-recipes h2 { max-width: 600px; margin: 0; font: 400 clamp(30px, 4vw, 48px)/1.08 Georgia, serif; letter-spacing: -.035em; }
+.integration-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; margin-top: 38px; }
+.integration-grid article { padding-top: 18px; border-top: 1px solid var(--line); }
+.integration-grid h3 { margin: 0 0 8px; font-size: 19px; font-weight: 550; }
+.integration-grid p { max-width: 300px; margin: 0; color: var(--muted); font-size: 12px; line-height: 1.65; }
 .developer-explainer-intro {
   display: grid;
   grid-template-columns: .8fr 1.2fr;
@@ -1780,7 +1786,7 @@ body::before { content: none; }
   .batch-settings { padding-top: 22px; }
   .verification-layout { grid-template-columns: 1fr; gap: 44px; }
   .verification-report { padding-top: 22px; }
-  .developer-explainer-intro, .developer-flow { grid-template-columns: 1fr; }
+  .developer-explainer-intro, .developer-flow, .integration-grid { grid-template-columns: 1fr; }
   .developer-links { display: grid; gap: 14px; margin-bottom: 42px; }
   .developer-links a { justify-content: space-between; }
   .developer-explainer-intro { gap: 14px; }

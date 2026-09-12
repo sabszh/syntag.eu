@@ -887,6 +887,14 @@ function Developers() {
           code={`POST http://127.0.0.1:4317/v1/tag\n\n{\n  "filename": "image.png",\n  "assetBase64": "...",\n  "settings": {\n    "level": "generated",\n    "theme": "eu"\n  }\n}`}
         />
       </div>
+      <section className="integration-recipes">
+        <h2>Connect it to the tool you already use.</h2>
+        <div className="integration-grid">
+          <article><h3>Web apps</h3><p>Pass the selected browser <code>File</code> to <code>Syntag.process()</code> before your app uploads or publishes it. The original bytes stay in the browser.</p></article>
+          <article><h3>CMS and ecommerce</h3><p>Run the local CLI or HTTP API in the publishing workstation’s workflow, then upload the returned asset and its sidecar to your existing media library.</p></article>
+          <article><h3>AI tools and agents</h3><p>Expose the local MCP server to the desktop client that creates the asset. The agent can tag a path without sending the asset through a remote Syntag endpoint.</p></article>
+        </div>
+      </section>
       <section className="developer-explainer">
         <div className="developer-explainer-intro">
           <h2>Choose the route that keeps your file where it already is.</h2>
