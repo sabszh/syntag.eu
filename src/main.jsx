@@ -393,7 +393,7 @@ function Studio() {
             )}
           </div>
           {progress > 0 && (
-            <progress className="export-progress" max="1" value={progress}>
+            <progress className="export-progress" aria-label="Export progress" max="1" value={progress}>
               {Math.round(progress * 100)}%
             </progress>
           )}
