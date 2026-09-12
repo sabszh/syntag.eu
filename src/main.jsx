@@ -787,7 +787,7 @@ function Tag({ opts }) {
       className={`tag ${opts.theme} ${opts.size} ${opts.position}`}
       style={{ opacity: opts.opacity }}
     >
-      <span className="ai-glyph">AI</span>
+      <span className="tag-mark" aria-hidden="true" />
       <b>{getLabel(opts.level, opts.language)}</b>
     </div>
   );
