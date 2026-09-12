@@ -605,6 +605,16 @@ function Developers() {
       title="Browser API, Local MCP & API"
       intro="Choose browser-local or desktop-local integration. Asset bytes stay on the user’s device."
     >
+      <nav className="developer-links" aria-label="Developer resources">
+        <a href="https://github.com/sabszh/syntag.eu" target="_blank" rel="noreferrer">
+          <span>Source code</span>
+          <strong>GitHub ↗</strong>
+        </a>
+        <a href="https://www.npmjs.com/package/@sabszh/syntag-local" target="_blank" rel="noreferrer">
+          <span>Install the local CLI</span>
+          <strong>npm ↗</strong>
+        </a>
+      </nav>
       <div className="code-grid">
         <Code
           title="Browser API"

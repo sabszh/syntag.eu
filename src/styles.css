@@ -1479,6 +1479,25 @@ body::before { content: none; }
 .eu-callout h2 { font: 400 34px/1.15 Georgia, serif; letter-spacing: -.03em; }
 .eu-callout p { margin: 0; line-height: 1.7; }
 .code-grid { gap: 32px; }
+.developer-links {
+  display: flex;
+  gap: 32px;
+  margin: -18px 0 56px;
+  padding: 18px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.developer-links a {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 12px;
+  color: var(--ink);
+  font-size: 12px;
+  text-decoration: none;
+}
+.developer-links a:hover strong { text-decoration: underline; text-underline-offset: 4px; }
+.developer-links span { color: var(--muted); }
+.developer-links strong { font-weight: 500; }
 .code-card { min-height: 0; padding-top: 20px; border-top: 1px solid var(--line); }
 .code-card h2, .rpc-console h2 { font: 400 26px/1.2 Georgia, serif; letter-spacing: -.02em; }
 .code-card button { background: transparent; color: var(--ink); text-decoration: underline; text-underline-offset: 4px; padding-right: 0; }
@@ -1596,6 +1615,8 @@ body::before { content: none; }
 }
 @media (max-width: 720px) {
   .developer-explainer-intro, .developer-flow { grid-template-columns: 1fr; }
+  .developer-links { display: grid; gap: 14px; margin-bottom: 42px; }
+  .developer-links a { justify-content: space-between; }
   .developer-explainer-intro { gap: 14px; }
   .developer-flow { gap: 24px; margin-top: 30px; }
   .developer-flow h3 { margin-top: 12px; }
