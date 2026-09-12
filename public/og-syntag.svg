@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#f1f1ef"/>
+  <path d="M72 72H1128M72 558H1128" stroke="#d0d0c9"/>
+  <image href="/syntag-logo.svg" x="76" y="106" width="72" height="84" preserveAspectRatio="xMidYMid meet"/>
+  <text x="190" y="190" fill="#111" font-family="Arial, Helvetica, sans-serif" font-size="38" font-weight="700">Syntag</text>
+  <text x="76" y="352" fill="#111" font-family="Georgia, serif" font-size="88" letter-spacing="-4">Disclose AI.</text>
+  <text x="80" y="420" fill="#5f5f59" font-family="Arial, Helvetica, sans-serif" font-size="27">Clear labels for images, video, audio, and PDFs.</text>
+  <rect x="80" y="490" width="280" height="54" fill="#111"/>
+  <text x="106" y="526" fill="#fff" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" letter-spacing="2">LOCAL BY DESIGN</text>
+  <text x="1128" y="190" text-anchor="end" fill="#5f5f59" font-family="Arial, Helvetica, sans-serif" font-size="20">syntag.eu</text>
+</svg>

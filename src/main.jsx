@@ -52,6 +52,15 @@ const pages = [
   ["trust", "Trust"],
   ["contact", "Contact"],
 ];
+const SITE_URL = "https://syntag.eu";
+const PAGE_META = {
+  studio: { title: "Studio — Add AI disclosures to your media | Syntag", description: "Add clear AI disclosure labels to images, video, audio, PDFs, and ZIP archives. Processing stays local in your browser." },
+  verify: { title: "Verify AI disclosure metadata | Syntag", description: "Inspect Syntag labels, JSON sidecars, embedded metadata, and C2PA provenance in your browser." },
+  guidance: { title: "When should AI content be labelled? | Syntag", description: "A practical publishing guide for deciding when AI content should be disclosed." },
+  developers: { title: "Syntag API and local MCP | Syntag", description: "Use Syntag through the browser API, local MCP server, or local HTTP API without sending files to Syntag." },
+  trust: { title: "Privacy and local processing | Syntag", description: "Learn how Syntag keeps media in your browser and what metadata is added during export." },
+  contact: { title: "Contact Syntag", description: "Get in touch with the team behind Syntag." },
+};
 function contrastOptions(theme) {
   if (theme === "mono") return [["auto", "Automatic"], ["white", "White"], ["white-50", "White 50%"]];
   if (theme === "metal" || theme === "outline") return [["auto", "Automatic"], ["black", "Black"], ["black-50", "Black 50%"]];
@@ -103,21 +112,40 @@ function FormatIcon({ type }) {
 }
 
 function App() {
-  const routeFromHash = () => {
-    const value = decodeURIComponent(location.hash.replace(/^#\//, "")).split("#")[0];
-    return pages.some(([id]) => id === value) ? value : "studio";
+  const routeFromLocation = () => {
+    const path = location.pathname.replace(/^\/+|\/+$/g, "");
+    if (pages.some(([id]) => id === path)) return path;
+    const legacy = decodeURIComponent(location.hash.replace(/^#\//, "")).split("#")[0];
+    return pages.some(([id]) => id === legacy) ? legacy : "studio";
   };
-  const [route, setRoute] = useState(routeFromHash());
+  const [route, setRoute] = useState(routeFromLocation());
   const [menuOpen, setMenuOpen] = useState(false);
   const mainRef = useRef(null);
   useEffect(() => {
-    const f = () => { setRoute(routeFromHash()); setMenuOpen(false); };
+    const f = () => { setRoute(routeFromLocation()); setMenuOpen(false); };
+    addEventListener("popstate", f);
     addEventListener("hashchange", f);
-    return () => removeEventListener("hashchange", f);
+    return () => { removeEventListener("popstate", f); removeEventListener("hashchange", f); };
   }, []);
-  const go = (p) => { setMenuOpen(false); location.hash = `/${p}`; };
+  const go = (p) => {
+    setMenuOpen(false);
+    history.pushState({}, "", p === "studio" ? "/" : `/${p}`);
+    setRoute(p);
+  };
   useEffect(() => installBrowserApi(() => activeStudioFile), []);
   useEffect(() => { track("page_view"); }, [route]);
+  useEffect(() => {
+    const meta = PAGE_META[route] || PAGE_META.studio;
+    const canonical = `${SITE_URL}${route === "studio" ? "/" : `/${route}`}`;
+    document.title = meta.title;
+    document.querySelector('meta[name="description"]')?.setAttribute("content", meta.description);
+    document.querySelector('link[rel="canonical"]')?.setAttribute("href", canonical);
+    document.querySelector('meta[property="og:url"]')?.setAttribute("content", canonical);
+    document.querySelector('meta[property="og:title"]')?.setAttribute("content", meta.title);
+    document.querySelector('meta[property="og:description"]')?.setAttribute("content", meta.description);
+    document.querySelector('meta[name="twitter:title"]')?.setAttribute("content", meta.title);
+    document.querySelector('meta[name="twitter:description"]')?.setAttribute("content", meta.description);
+  }, [route]);
   useEffect(() => mainRef.current?.focus(), [route]);
   return (
     <div className="app">
