@@ -21,6 +21,42 @@ const PORT = Number(process.env.SYNTAG_LOCAL_PORT || 4317);
 const MAX_IMAGE_BYTES = 80 * 1024 ** 2;
 const root = resolve(new URL("../", import.meta.url).pathname);
 
+function c2paConfigured() {
+  return Boolean(process.env.SYNTAG_C2PA_CERT || process.env.SYNTAG_C2PA_KEY);
+}
+
+async function signC2pa(input, inputMime, outputMime, filename) {
+  const certPath = process.env.SYNTAG_C2PA_CERT;
+  const keyPath = process.env.SYNTAG_C2PA_KEY;
+  if (!certPath || !keyPath)
+    throw new Error("C2PA signing needs both SYNTAG_C2PA_CERT and SYNTAG_C2PA_KEY.");
+  const [{ Builder, LocalSigner }, certificate, privateKey] = await Promise.all([
+    import("@contentauth/c2pa-node"),
+    readFile(resolve(certPath)),
+    readFile(resolve(keyPath)),
+  ]);
+  const signer = LocalSigner.newSigner(
+    certificate,
+    privateKey,
+    process.env.SYNTAG_C2PA_ALG || "es256",
+    process.env.SYNTAG_C2PA_TSA || undefined,
+  );
+  const builder = Builder.new();
+  builder.setIntent("edit");
+  await builder.addIngredient(
+    JSON.stringify({
+      title: basename(filename),
+      format: inputMime,
+      relationship: "parentOf",
+    }),
+    { buffer: input, mimeType: inputMime },
+  );
+  // c2pa-node writes the signed asset into a destination buffer; it must start empty.
+  const signedAsset = { buffer: null, mimeType: outputMime };
+  builder.sign(signer, { buffer: input, mimeType: inputMime }, signedAsset);
+  return signedAsset.buffer;
+}
+
 const tool = {
   name: "syntag_tag_asset",
   description:
@@ -106,7 +142,7 @@ async function tagImage(input, filename, settings = {}) {
   const provenance = {
     visibleDisclosure: true,
     embeddedXmp: options.embedMetadata !== false,
-    c2pa: false,
+    c2pa: c2paConfigured(),
   };
   const sidecarMetadata = {
     createdAt: new Date().toISOString(),
@@ -123,8 +159,10 @@ async function tagImage(input, filename, settings = {}) {
   };
   const pipeline = image.composite([overlay]).withMetadata();
   if (provenance.embeddedXmp) pipeline.withXmp(buildXmp(sidecarMetadata));
-  const output = await pipeline.toFormat(outputType, outputType === "jpeg" ? { quality: 94 } : undefined).toBuffer();
-  return { output, contentType: `image/${outputType}`, filename: `${basename(filename, extname(filename))}-syntag.${outputType}`, options };
+  let output = await pipeline.toFormat(outputType, outputType === "jpeg" ? { quality: 94 } : undefined).toBuffer();
+  if (provenance.c2pa)
+    output = await signC2pa(input, metadata.format === "jpeg" ? "image/jpeg" : "image/png", outputMime, filename);
+  return { output, contentType: outputMime, filename: `${basename(filename, extname(filename))}-syntag.${outputType}`, options, provenance };
 }
 
 async function readJson(req) {

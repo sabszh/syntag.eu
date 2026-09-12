@@ -73,8 +73,22 @@ each asset.
 Verify can also read an existing C2PA Content Credential in the browser using
 the official `c2pa-web` reader. Syntag does not create a fake unsigned
 credential: signing requires a configured certificate and private key. Current
-Syntag exports therefore report C2PA as absent while keeping the XMP and
-sidecar provenance explicit.
+browser exports report C2PA as absent while keeping the XMP and sidecar
+provenance explicit; the local CLI can opt into signing as described below.
+
+The local CLI can sign JPEG and PNG exports when the signing material is
+provided by the workstation environment:
+
+```sh
+export SYNTAG_C2PA_CERT=/secure/path/certificate.pem
+export SYNTAG_C2PA_KEY=/secure/path/private-key.pem
+npx @sabszh/syntag-local tag ./image.png
+```
+
+The key is read locally and is never sent to Syntag. Keep it outside the
+repository and use a certificate chain trusted by the systems that will read
+the credential. `SYNTAG_C2PA_ALG` defaults to `es256`; `SYNTAG_C2PA_TSA` is an
+optional timestamp authority URL.
 
 ## Deploy to Cloudflare from GitHub
 
